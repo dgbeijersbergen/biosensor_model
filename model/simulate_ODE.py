@@ -23,19 +23,18 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     t_pulse_hat = V_in / V  # nondimensional pulse duration = V_in / V
 
-    # time length of simulation
+    # time length of simulation (if undefined: 3x pulse time)
     if max_time == None:
-        t_span_hat = (0, 3 * t_pulse_hat)  # simulate 3× pulse in nondimensional units
+        t_span_hat = (0, 3 * t_pulse_hat)
     else:
         max_time_hat = max_time / tau   # non dimensionalized time
         t_span_hat = (0, max_time_hat)  # simulate specified time
 
-    dt_hat = 1e-4  # nondimensional step
+    dt_hat = 1e-4  # nondimensional time step
     nt = int(np.ceil((t_span_hat[1] - t_span_hat[0]) / dt_hat)) + 1
     t_eval_hat = np.linspace(t_span_hat[0], t_span_hat[1], nt)
 
-
-    # solve with LSODA (auto stiffness switching)
+    # solve biosensor ODE (best result: LSODA)
     sol = solve_ivp(ode_binding_hat, t_span_hat, y0_hat, method='LSODA',t_eval=t_eval_hat, args=(params,))
 
     # --- get results --- #
@@ -96,15 +95,10 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     k_m = F * (D / (H_c/2))               # mass transport rate
 
-
-    #Da = (k_on * b_m * L_s) / (D * F)       # Damkohler number
-    #Da = k_on * c_in * tau
-    # Da = k_on * c_in * L_s / k_m
-    Da = (k_on * b_m) / k_m
-
-    Da_2 = k_on * c_in * tau
-
-    Da_t = (k_on * (b_m - b)) / k_m
+    # Damkohler number
+    Da = (k_on * b_m) / k_m                 # definition like in Squires
+    Da_2 = k_on * c_in * tau                # alternative definition
+    Da_t = (k_on * (b_m - b)) / k_m         # time dependent definition
 
     # results
     N_loss = N_out[-1]             # lost molecules [mol]

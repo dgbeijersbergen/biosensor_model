@@ -14,8 +14,6 @@ def F_Ackerberg(Pe_s):
 def F_Newman(Pe_s):
     return (0.81 * Pe_s ** (1/3)) + (0.71 * Pe_s**(-1/6)) - (0.2 * Pe_s**(-1/3))
 
-# for mixed cases
-
 # blending formula with hyperbolic tangent (transposed to t[0,1] with output [0,1])
 def smoothstep(kappa, sharpness = 4):
     kappa = np.clip(kappa, 0, 1)    # clip values for t < 0 and t > 1
@@ -25,6 +23,7 @@ def smoothstep(kappa, sharpness = 4):
 def blend_functions(F_low,F_high, omega):
     return (F_low ** (1 - omega)) * (F_high ** omega)
 
+# calculate sherwood number (F) for given peclet number (Pe_H)
 def F_combine(Pe_H,lambda_ratio,sharpness=4,Pe_H_cutoff=1e-2,Pe_s_low=1e-2,Pe_s_high=1e2):
     Pe_s = 6 * (lambda_ratio ** 2) * Pe_H
 
@@ -50,6 +49,7 @@ def F_combine(Pe_H,lambda_ratio,sharpness=4,Pe_H_cutoff=1e-2,Pe_s_low=1e-2,Pe_s_
 
     return blend_functions(F_small,F_large,omega)
 
+# compute k_m
 def compute_k_m(Q_in,params):
     D = params.D
     W_c = params.W_c
