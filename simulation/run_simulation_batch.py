@@ -1,11 +1,11 @@
-from biosensor_project.biosensor.parameters.parameters_QCM import params
-from biosensor_project.biosensor.model.simulate_ODE import simulate
-from biosensor_project.biosensor.plots.plot_results import *
+from biosensor.parameters.parameters_QCM import params
+from biosensor.model.simulate_ODE import simulate
+from biosensor.plots.plot_results import *
 import numpy as np
 import pandas as pd
 import itertools
 from tqdm import tqdm
-from biosensor_project.biosensor.utils.save_results import save_simulation_results
+from biosensor.utils.save_results import save_simulation_results
 
 
 # print results in consol

@@ -1,7 +1,7 @@
-from biosensor_project.biosensor.model.biosensor_model import ode_binding_hat
+from biosensor.model.biosensor_model import ode_binding_hat
 from scipy.integrate import solve_ivp
-from biosensor_project.biosensor.plots.plot_results import *
-from biosensor_project.biosensor.model.calculate_Sherwood import F_combine, compute_k_m
+from biosensor.plots.plot_results import *
+from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
 
 def simulate(params, print_results = False, plot_results = False, max_time = None):
 
@@ -194,6 +194,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "t": t,
         "b": b,
         "c": c,
+        "S": S,
         "b_m": b_m,
         "b_eq": b_eq,
         "c_s": c_s,

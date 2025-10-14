@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-from biosensor_project.biosensor.model.calculate_Sherwood import F_combine, compute_k_m
+from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
 
 # Ordinary differential equation (ODE) for two-compartment model, dimensionless
 def ode_binding_hat(t_hat,y,params):
