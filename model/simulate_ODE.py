@@ -1,6 +1,7 @@
 from biosensor.model.biosensor_model import ode_binding_hat
 from scipy.integrate import solve_ivp
-from biosensor.plots.plot_results import *
+from biosensor.plots.plot_results_single import *
+from biosensor.plots.plot_results_batch import *
 from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
 
 def simulate(params, print_results = False, plot_results = False, max_time = None):
@@ -30,7 +31,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         max_time_hat = max_time / tau   # non dimensionalized time
         t_span_hat = (0, max_time_hat)  # simulate specified time
 
-    dt_hat = 1e-4  # nondimensional time step
+    dt_hat = 1e-2  # nondimensional time step (note: just for visualization, solve_ivp defines its own timestep)
     nt = int(np.ceil((t_span_hat[1] - t_span_hat[0]) / dt_hat)) + 1
     t_eval_hat = np.linspace(t_span_hat[0], t_span_hat[1], nt)
 
@@ -41,7 +42,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     t_hat = sol.t       # type: ignore
     b_hat = sol.y[0]    # type: ignore
     c_hat = sol.y[1]    # type: ignore
-    N_out_hat = sol.y[2]    # type: ignore
+    mol_out_hat = sol.y[2]    # type: ignore
 
     # calculate c_s analytically (repeat from ODE)
     c_s_vals = []
@@ -74,15 +75,15 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     b = b_hat * b_m              # mol/m^2
     c = c_hat * c_in             # mol/m^3
     c_s = c_s_hat * c_in        # mol/m^3
-    N_out = N_out_hat * (c_in * V)   # mol
+    mol_out = mol_out_hat * (c_in * V)   # mol
 
     # cumulative injected (dimensional)
-    N_injected = np.minimum(c_in * Q_in * t, c_in * V_in)  # mol
+    mol_injected = np.minimum(c_in * Q_in * t, c_in * V_in)  # mol
 
     ## -- analysis -- ##
 
     # conservation check (should be near zero)
-    residual = N_injected - N_out - b * S - c * V
+    residual = mol_injected - mol_out - b * S - c * V
 
 
     # system characteristics
@@ -101,28 +102,29 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     Da_t = (k_on * (b_m - b)) / k_m         # time dependent definition
 
     # results
-    N_loss = N_out[-1]             # lost molecules [mol]
-    loss_perc = 100 * (N_loss / N_injected[-1]) # percentage lost
-    N_capt = b * S                          # captured molecules (array) [mol]
-    capt_perc = 100 * (N_capt[-1] / N_injected[-1])      # percentage captured
-    N_bulk = c[-1] * V
-    N_bulk_conc = c[-1]
-    bulk_perc = 100 * (N_bulk / N_injected[-1])      # percentage captured
+    mol_capt = b * S                          # captured molecules (array) [mol]
+    mol_bulk = c * V
 
+    # end values
+    mol_bulk_end = c[-1] * V
+    mol_bulk_conc_end = c[-1]
+    bulk_perc = 100 * (mol_bulk_end / mol_injected[-1])      # percentage captured
+
+    # performance
+    loss_perc = 100 * (mol_out[-1] / mol_injected[-1])     # percentage lost at end
+    capt_perc = 100 * (mol_capt[-1] / mol_injected[-1])  # percentage captured
+
+    # check if targets reached
     b_eq = (k_on * c_in * b_m) / (k_on * c_in + k_off)
+    mol_eq = b_eq * S
+    eq_target = 0.95
+    capt_target = 0.95
 
-    b_hat_eq = b / b_eq
-    N_eq = b_eq * S
-    eq_target = 0.95    # percentage of equilibrium to reach as target
+    # find indices where targets are satisfied
+    indices_eq = np.where(mol_capt >= eq_target * mol_eq)[0]
+    indices_capt = np.where(mol_capt >= capt_target * mol_injected[-1])[0]
 
-    capt_target = 0.90
-
-    # find the first index where captured molecules satisfies equilbrium target
-    indices_eq = np.where(N_capt >= eq_target * N_eq)[0]
-
-    # find the first index where captured molecules satisfies equilbrium target
-    indices_capt = np.where(N_capt >= capt_target * N_injected[-1])[0]
-
+    # Capture and equilibrium times
     if len(indices_eq) > 0 and len(indices_capt) > 0:
         reached_eq = True
         time_eq = t[indices_eq[0]]
@@ -143,6 +145,15 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         time_capt = np.inf
         time_eq = np.inf
 
+    # Compute relative mass balance error
+    mol_bound = b * S  # bound molecules [mol]
+    mol_total = mol_bound + mol_bulk + mol_out  # molecules in system [mol]
+
+    mass_error = np.zeros_like(t)
+    nonzero_mask = mol_injected > 0     # avoid division by zero
+    mass_error[nonzero_mask] = (mol_injected[nonzero_mask] - mol_total[nonzero_mask]) / mol_injected[nonzero_mask]
+    mass_error[~nonzero_mask] = 0       # set error to 0 when no injection
+
     if print_results == True:
         print("Simulation of system")
         print(f"Flow rate [uL/min]:, {Q_in*60*1e9:.2f}")
@@ -160,42 +171,29 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         print("-----------")
 
         print("System performance (at end):")
-        print(f"Lost molecules [mol] : {N_loss:.3e}")
+        print(f"Lost molecules [mol] : {mol_out[-1]:.3e}")
         print(f"Lost molecules [%] : {loss_perc:.2f}")
-        print(f"Captured molecules [mol] : {N_capt[-1]:.3e}")
+        print(f"Captured molecules [mol] : {mol_capt[-1]:.3e}")
         print(f"Captured molecules [%] : {capt_perc:.2f}")
-        print(f"Bulk molecules remaining [mol] : {N_bulk:.3e}")
+        print(f"Bulk molecules remaining [mol] : {mol_bulk_end:.3e}")
         print(f"Bulk molecules  [%] : {bulk_perc:.2f}")
-        print(f"Bulk concentration [mol/L] : {N_bulk_conc:.3e}")
+        print(f"Bulk concentration [mol/L] : {mol_bulk_conc_end:.3e}")
 
         print("--- equilbirium ---")
-        print(f"Bound equilibrium [mol] [%] : {N_eq:.3e}")
-        print(f"Bound equilibrium [M] [%] : {N_eq/S:.3e}")
+        print(f"Bound equilibrium [mol] [%] : {mol_eq:.3e}")
+        print(f"Bound equilibrium [M] [%] : {mol_eq/S:.3e}")
         print("Reached equilbirium: ", reached_eq)
         print(f"Time to equilibrium [s] : {time_eq:.2f}")
-
-    ## --- plotting --- ##
-    if plot_results == True:
-        # plot damkohler number
-        # plot_Damkohler_time(t, Da_t)
-
-        # plot time series of mol values
-        plot_time_series(t, b, c, c_s, N_injected, N_out, S, V)
-
-        # plot time series of dimensionless values
-        plt.subplot(1, 1, 1)
-        plt.figure(figsize=(8, 5))
-        plot_dimensionless(t, S, N_injected, N_out, b,b_hat, b_hat_eq, c_hat, t_pulse_hat * tau)
-
-        plt.tight_layout()
-        plt.show()
 
     return {
         "t": t,
         "b": b,
+        "b_hat": b_hat,
         "c": c,
+        "c_hat": c_hat,
         "S": S,
         "b_m": b_m,
+        "c_in": c_in,
         "b_eq": b_eq,
         "c_s": c_s,
         "Pe_H": Pe_H,
@@ -206,19 +204,23 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "Da": Da,
         "Da_2": Da_2,
         "Da_t": Da_t,
-        "N_injected": N_injected,
-        "N_out": N_out,
-        "N_loss": N_loss,
-        "N_eq": N_eq,
+        "mol_injected": mol_injected,
+        "mol_out": mol_out,
+        "mol_eq": mol_eq,
         "reached_eq": reached_eq,
         "time_eq": time_eq,
         "time_capt": time_capt,
-        "N_capt": N_capt,   # array of captured moles
+        "mol_capt": mol_capt,   # array of captured moles
         "loss_perc": loss_perc,
         "capt_perc": capt_perc, # one value
         "bulk_perc": bulk_perc,
-        "N_bulk": N_bulk,
-        "N_bulk_conc": N_bulk_conc
+        "mol_bulk": mol_bulk,
+        "mol_bulk_end": mol_bulk_end,
+        "mol_bulk_conc": mol_bulk_conc_end,
+        "t_pulse_hat": t_pulse_hat,
+        "tau": tau,
+        "V": V,
+        "mass_error": mass_error
     }
 
 

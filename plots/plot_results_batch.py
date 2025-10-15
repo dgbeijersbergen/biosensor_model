@@ -13,75 +13,7 @@ from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 import os
 
-def plot_time_series(t, b, c, c_s, N_injected, N_out, S, V, save_path=None):
-    N_bound = b * S
-    N_bulk = c * V
-    N_total = N_bound + N_bulk + N_out
-
-    # Safe mass error calculation
-    mass_error = np.zeros_like(t)
-    nonzero_mask = N_injected > 0
-    mass_error[nonzero_mask] = (N_injected[nonzero_mask] - N_total[nonzero_mask]) / N_injected[nonzero_mask]
-    mass_error[~nonzero_mask] = 0  # set error to 0 when N_injected is 0
-
-    fig, ax1 = plt.subplots(figsize=(8, 5))
-
-    # Left axis: actual molecules
-    ax1.plot(t, N_bound, label='N_bound (mol)')
-    ax1.plot(t, N_bulk, label='N_bulk (mol)')
-    ax1.plot(t, N_injected, label='N_injected (mol)')
-    ax1.plot(t, N_out, label='N_out (mol)')
-    ax1.plot(t, c_s, label='interface c')
-    ax1.set_xlabel('Time [s]')
-    ax1.set_ylabel('Moles')
-    ax1.grid(True)
-
-    # Right axis: mass balance error
-    ax2 = ax1.twinx()
-    ax2.plot(t, 100*abs(mass_error), '--k', label='Mass balance error [%]')
-    ax2.set_ylabel('Mass balance error % [N_system / N_injected]')
-
-    # Combine legends
-    lines_1, labels_1 = ax1.get_legend_handles_labels()
-    lines_2, labels_2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right')
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-def plot_dimensionless(t, S, N_injected, N_out, b,b_hat, b_hat_eq, c_hat, t_pulse_hat=None, save_path=None):
-    N_bound = b * S
-    capt_ratio = N_bound/N_injected
-    loss_ratio = N_out/N_injected
-
-    plt.plot(t, b_hat, label='b_hat (fraction of b_m)')
-    plt.plot(t, b_hat_eq, label='b_hat (fraction of b_eq)')
-    plt.plot(t, c_hat, label='c_hat (c/c_in)')
-    plt.plot(t, capt_ratio, label='capture ratio')
-    plt.plot(t, loss_ratio, label='loss ratio')
-    if t_pulse_hat:
-        plt.axvline(t_pulse_hat, color='k', ls='--', label='pulse end (dim)')
-    plt.xlabel('Time [s]')
-    plt.legend(loc="right")
-    plt.grid(True)
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
+## Batch simulation plots
 def plot_Damkohler_time(t,Da_t, save_path=None):
     plt.plot(t, Da_t, label='b_hat (fraction of b_m)')
     plt.ylabel('Damkohler number')
