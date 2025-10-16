@@ -361,20 +361,17 @@ def plot_capt_perc_interp(df, grid_size=100, save_path=None):
     else:
         plt.show()
 
-def plot_site_occupancy_interp(df, grid_size=100, save_path=None):
+def plot_site_occupancy_interp(df, params, grid_size=100, save_path=None):
     fig, ax = plt.subplots(figsize=(7, 6))
 
-    # Compute site occupancy [%]
-
-    df["occupancy"] = 100 * df["b"].apply(lambda arr: arr[-1]) / df["b_eq"]
-
     # Keep only valid numeric rows
-    valid = df[["Q_in", "V_in", "occupancy"]].replace([np.inf, -np.inf], np.nan).dropna()
+    valid = df[["Q_in", "V_in", "b_last"]].replace([np.inf, -np.inf], np.nan).dropna()
 
     # Convert units
     x = valid["Q_in"].values * 1e9 * 60  # Flow rate [uL/min]
     y = valid["V_in"].values * 1e9  # Volume [uL]
-    z = valid["occupancy"].values  # Occupancy rate [%]
+    # z = 100 * valid["b_last"].values / params.b_m  # Occupancy rate [%]
+    z = 100 * valid["b_last"].values / df["b_eq"]  # Ratio to equilibrium [%]
 
     # Create log-spaced interpolation grid
     xi = np.logspace(np.log10(x.min()), np.log10(x.max()), grid_size)

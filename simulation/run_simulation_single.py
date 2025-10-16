@@ -8,7 +8,7 @@ import os
 # simulation
 print_results = True
 plot_results = True
-export_data = False
+export_data = True
 
 # SI units
 params.c_in = params.c_in * 1e3  # input concentration in SI units [mol/m3]
@@ -24,7 +24,7 @@ t_pulse = df["t_pulse_hat"].values[0] * df["tau"].values[0]
 
 # export data
 if export_data == True:
-    csv_file = save_simulation_results(results, params, run_type="single", file_format="csv")
+    csv_file = save_simulation_results(df, params, run_type="single", file_format="csv")
 
     # Save plots in same folder
     plot_dir = os.path.join(os.path.dirname(csv_file), "plots")
@@ -33,17 +33,15 @@ if export_data == True:
     plot_time_series(df,t_pulse,
         save_path=os.path.join(plot_dir, "time_series.png"))
 
-    # plot error over time
-    plot_mass_balance_error(df,t_pulse,
-        save_path=os.path.join(plot_dir, "error.png"))
-
     plot_dimensionless(df,t_pulse,
         save_path=os.path.join(plot_dir, "dimensionless.png"))
 
     plot_system_performance(df, t_pulse,
         save_path=os.path.join(plot_dir, "system_performance.png"))
 
-    ## --- plotting --- ##
+    plot_mass_balance_error(df,t_pulse,
+        save_path=os.path.join(plot_dir, "error.png"))
+
 if plot_results == True:
 
     # plot time series of mol values

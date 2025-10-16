@@ -77,6 +77,8 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     c_s = c_s_hat * c_in        # mol/m^3
     mol_out = mol_out_hat * (c_in * V)   # mol
 
+    b_last = b[-1]
+
     # cumulative injected (dimensional)
     mol_injected = np.minimum(c_in * Q_in * t, c_in * V_in)  # mol
 
@@ -156,7 +158,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     if print_results == True:
         print("Simulation of system")
-        print(f"Flow rate [uL/min]:, {Q_in*60*1e9:.2f}")
+        print(f"Flow rate [uL/min]:, {Q_in*1e9*60:.2f}")
         print(f"Volume [uL]:, {V*1e9}")
         print("Max abs conservation residual [mol]:", np.max(np.abs(residual)))
         print("-----------")
@@ -188,6 +190,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     return {
         "t": t,
         "b": b,
+        "b_last": b_last,
         "b_hat": b_hat,
         "c": c,
         "c_hat": c_hat,

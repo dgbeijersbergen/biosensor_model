@@ -80,11 +80,6 @@ def plot_dimensionless(df, t_pulse=None, save_path=None):
     # Compute moles in each compartment
     mol_bound = b * S
 
-    # Compute capture and loss ratios over time
-    with np.errstate(invalid='ignore', divide='ignore'): # ignore div by zero errors
-        capt_ratio = mol_bound/mol_injected
-        loss_ratio = mol_out/mol_injected
-
     # Plot
     plt.plot(t, b_hat, label=r'Bound $\hat{b}$', color="xkcd:grass green",linewidth=2.5)
     plt.axhline(b_eq / b_m, ls='--', label=r'Equilibrium $\hat{b_{eq}}$', color="xkcd:grass green",linewidth=2)
