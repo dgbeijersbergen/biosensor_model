@@ -61,17 +61,17 @@ def compute_k_m(Q_in,params):
     Lambda = L_s / H_c      # ratio of sensor length to channel height
 
     # obtain k_m from calculate_Sherwood.py, with F minimum of 1 (pure diffusion)
-    F = max(F_combine(Pe_H,Lambda),1)
+    F = F_combine(Pe_H,Lambda)
 
     # F cannot exceed Pe_H (limit) - don't enforce for the model, breaks down at low Pe_H
-    #if F > Pe_H:
-    #    F = Pe_H
+    if F > Pe_H:
+        F = Pe_H
 
     # calculate mass transport rate
     if params.char_length == 'H':
         k_m = F * (D / H_c)         # characteristic length H
     elif params.char_length == 'H_2':
-        k_m = F * (D / (H_c / 2))
+        k_m =  F * (D / (H_c / 2))
     else:
         raise ValueError("Unkown characteristic length (char_length)")
 
