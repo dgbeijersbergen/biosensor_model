@@ -198,3 +198,44 @@ def plot_mass_balance_error(df,t_pulse=None, save_path=None):
         plt.close()
     else:
         plt.show()
+
+def plot_Damkohler_time(df, save_path=None):
+    t = df["t"].values
+    Da_t = df["Da_t"].values
+
+    plt.plot(t, Da_t)
+    plt.ylabel('Damkohler number')
+    plt.xlabel('Time')
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+        plt.close()
+    else:
+        plt.show()
+
+def plot_cs_time(df, t_pulse, save_path=None):
+    t = df["t"].values
+    c_s = df["c_s"].values - df["c"]
+
+    plt.plot(t, c_s)
+    plt.ylabel('Delta c [M]')
+    plt.xlabel('Time')
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    if t_pulse:
+        plt.axvline(t_pulse, color='k', ls='--', label='Injection end')
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+        plt.close()
+    else:
+        plt.show()

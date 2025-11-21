@@ -1,4 +1,4 @@
-from biosensor_project.biosensor.model.calculate_Sherwood import *
+from biosensor.model.calculate_Sherwood import *
 import matplotlib.pyplot as plt
 
 

@@ -43,6 +43,7 @@ def ode_binding_hat(t_hat,y,params):
 
     # langmuir kinetics (eq. 2)
     dbhat_dt = tau * ((k_on * c_in * c_s_hat * (1 - b_hat)) - (k_off * b_hat))
+    #dbhat_dt = tau * ((k_on * c_in * c_s_hat * (1 - b_hat)))
 
     # compute Langmuir equilibrium fraction for current c_s_hat
     b_eq_hat = (k_on * c_in) / (k_on * c_in + k_off)

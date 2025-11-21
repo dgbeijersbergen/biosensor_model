@@ -2,25 +2,33 @@ from biosensor.parameters.parameters import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_single import *
 from biosensor.utils.save_results import save_simulation_results
+from biosensor.plots.plot_results_other import *
 import pandas as pd
 import os
 
 # simulation
-print_results = True
+print_results = False
 plot_results = True
-export_data = True
+export_data = False
 
 # SI units
+Q_conversion_factor = (1/60) * 10 ** (-9)
+params.Q_in = params.Q_in * Q_conversion_factor
 params.c_in = params.c_in * 1e3  # input concentration in SI units [mol/m3]
 params.k_on = params.k_on * 1e-3  # on rate in SI units [mol^-1 m^-3 s^-1]
 params.c_0 = params.c_0 * 1e3
 
+# Define maximum stimulation time
+max_time = None
+
 # simulate
-results = simulate(params, print_results, plot_results)
+results = simulate(params, print_results, plot_results,max_time)
 
 df = pd.DataFrame(results)
 
 t_pulse = df["t_pulse_hat"].values[0] * df["tau"].values[0]
+
+
 
 # export data
 if export_data == True:
@@ -47,6 +55,8 @@ if plot_results == True:
     # plot time series of mol values
     plot_time_series(df,t_pulse)
 
+    #plot_cs_time(df,t_pulse)
+
     # plot time series of dimensionless values
     plot_dimensionless(df, t_pulse)
 
@@ -55,3 +65,6 @@ if plot_results == True:
 
     # plot error over time
     plot_mass_balance_error(df,t_pulse)
+
+    # Damkohler number over time (useful?)
+    plot_Damkohler_time(df)
