@@ -36,7 +36,14 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     t_eval_hat = np.linspace(t_span_hat[0], t_span_hat[1], nt)
 
     # solve biosensor ODE (best result: LSODA)
-    sol = solve_ivp(ode_binding_hat, t_span_hat, y0_hat, method='LSODA',t_eval=t_eval_hat, args=(params,))
+    sol = solve_ivp(ode_binding_hat,
+                    t_span_hat,
+                    y0_hat,
+                    method='LSODA',
+                    t_eval=t_eval_hat,
+                    args=(params,),
+                    rtol=1e-8,
+                    atol=1e-10)
 
     # --- get results --- #
     t_hat = sol.t       # type: ignore
@@ -93,8 +100,8 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     Lambda = L_s / H_c                      # ratio of sensor length to channel height
     Pe_s = 6 * (Lambda ** 2) * Pe_H         # Peclet number (shear)
     F = F_combine(Pe_H, Lambda)             # Sherwood number
-    if F > Pe_H + 1:
-        F = Pe_H + 1
+    if F > Pe_H:
+        F = Pe_H
 
     k_m = F * (D / (H_c/2))               # mass transport rate
 
@@ -147,14 +154,16 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         time_capt = np.inf
         time_eq = np.inf
 
-    # Compute relative mass balance error
+    # Compute relative mass balance error (abs(x-y) / y)
     mol_bound = b * S  # bound molecules [mol]
     mol_total = mol_bound + mol_bulk + mol_out  # molecules in system [mol]
 
     mass_error = np.zeros_like(t)
     nonzero_mask = mol_injected > 0     # avoid division by zero
-    mass_error[nonzero_mask] = (mol_injected[nonzero_mask] - mol_total[nonzero_mask]) / mol_injected[nonzero_mask]
+    mass_error[nonzero_mask] = (abs(mol_total[nonzero_mask] - mol_injected[nonzero_mask])) / mol_injected[nonzero_mask]
     mass_error[~nonzero_mask] = 0       # set error to 0 when no injection
+    error_last = mass_error[-1]
+    error_max = max(mass_error)
 
     if print_results == True:
         print("Simulation of system")
@@ -190,11 +199,15 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     return {
         "t": t,
         "b": b,
+        "S": S,
+        "L_s": L_s,
+        "S": S,
         "b_last": b_last,
         "b_hat": b_hat,
         "c": c,
+        "k_on": k_on,
+        "k_off": k_off,
         "c_hat": c_hat,
-        "S": S,
         "b_m": b_m,
         "c_in": c_in,
         "b_eq": b_eq,
@@ -223,7 +236,9 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "t_pulse_hat": t_pulse_hat,
         "tau": tau,
         "V": V,
-        "mass_error": mass_error
+        "mass_error": mass_error,
+        "error_last": error_last,
+        "error_max": error_max
     }
 
 
