@@ -53,6 +53,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # calculate c_s analytically (repeat from ODE)
     c_s_vals = []
+
     for t_i, b_i, c_i in zip(t_hat,b_hat,c_hat):
         if t_i >= t_pulse_hat:
             Q_in_temp = 0
@@ -103,7 +104,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     if F > Pe_H:
         F = Pe_H
 
-    k_m = F * (D / (H_c/2))               # mass transport rate
+    k_m = F * (D / (H_c))               # mass transport rate
 
     # Damkohler number
     Da = (k_on * b_m) / k_m                 # definition like in Squires
@@ -201,9 +202,9 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "b": b,
         "S": S,
         "L_s": L_s,
-        "S": S,
         "b_last": b_last,
         "b_hat": b_hat,
+        "W_c": W_c,
         "c": c,
         "k_on": k_on,
         "k_off": k_off,
