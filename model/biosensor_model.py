@@ -5,7 +5,7 @@ from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
 
 # Ordinary differential equation (ODE) for two-compartment model, dimensionless
 def ode_binding_hat(t_hat,y,params):
-    b_hat, c_hat, N_out_hat = y
+    b_hat, c_hat, c_s_hat, N_out_hat1, N_out_hat2 = y
 
     # unpack params
     W_c, L_c, H_c = params.W_c, params.L_c, params.H_c
@@ -34,22 +34,27 @@ def ode_binding_hat(t_hat,y,params):
     k_m = compute_k_m(Q_eff,params)
 
     # non-dimensional interface concentration [ ] (eq.1)
-    c_s_numerator = (k_m * c_in * c_hat) + (k_off * b_m * b_hat)
-    c_s_denom = k_m + k_on * (b_m - (b_m*b_hat))
-    c_s_hat = (1 / c_in) * (c_s_numerator / c_s_denom)
+    # c_s_numerator = (k_m * c_in) + (k_off * b_m * b_hat)
+    # c_s_denom = k_m + k_on * (b_m - (b_m*b_hat))
+    # c_s_hat = (1 / c_in) * (c_s_numerator / c_s_denom)
+
+    # interface concentration
+    dNouthat2_dt = (Q_in / V) * c_s_hat
+    #dcs_hat_dt = tau * ( (k_m / L_s) - ((1 / H_c) * (k_on * c_s_hat * b_m * (1 - b_hat) - (k_off * b_m * b_hat) / c_in) ) - (Q_in / V) * c_s_hat)   # new
+    dcs_hat_dt = tau * ( (k_m * (1 - c_in * c_s_hat) / L_s) - ((1 / H_c) * (k_on * c_s_hat * b_m * (1 - b_hat) - (k_off * b_m * b_hat) / c_in) ) - (Q_in / V) * c_s_hat)   # new
 
     # limit c_s_hat to 1 (physical limit) (don't enforce)
     #c_s_hat = min(c_s_hat, 1.0)
 
     # langmuir kinetics (eq. 2)
-    dbhat_dt = tau * ((k_on * c_in * c_s_hat * (1 - b_hat)) - (k_off * b_hat))
+    db_hat_dt = tau * ((k_on * c_in * c_s_hat * (1 - b_hat)) - (k_off * b_hat))
     #dbhat_dt = tau * ((k_on * c_in * c_s_hat * (1 - b_hat)))
 
     # compute Langmuir equilibrium fraction for current c_s_hat
     b_eq_hat = (k_on * c_in) / (k_on * c_in + k_off)
 
     # limit b_hat to 1 (physical limit)
-    if (b_hat >= 1.0 or b_hat > b_eq_hat) and dbhat_dt > 0:
+    if (b_hat >= 1.0 or b_hat > b_eq_hat) and db_hat_dt > 0:
         dbhat_dt = 0.0
 
     # conservation of mass (eq. 3)
@@ -59,14 +64,15 @@ def ode_binding_hat(t_hat,y,params):
 
     # during injection or flow
     if t_hat < t_pulse_hat or flow_off == False:
-        dNouthat_dt = c_hat
-        dchat_dt = H - gamma * dbhat_dt - dNouthat_dt
+        dNouthat1_dt = c_hat
+        #dchat_dt = H - gamma * dbhat_dt - dNouthat_dt  # old
+        dc_hat_dt = H - tau * (k_m / L_s) - dNouthat1_dt  # new
 
     # after injection and stopped flow
     elif t_hat >= t_pulse_hat and flow_off == True:
         dchat_dt = - gamma * dbhat_dt
-        dNouthat_dt = 0
+        dNouthat1_dt = 0
 
-    return [dbhat_dt, dchat_dt, dNouthat_dt]
+    return [db_hat_dt, dc_hat_dt, dcs_hat_dt, dNouthat1_dt, dNouthat2_dt]
 
 
