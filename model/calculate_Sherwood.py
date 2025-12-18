@@ -1,5 +1,7 @@
 ## function to calculate k_m for given input of Pe_s and lambda
 import numpy as np
+from sympy import false
+
 
 # formulas for limits
 # for Pe_H << 1
@@ -66,6 +68,9 @@ def compute_k_m(Q_in,params):
     # F cannot exceed Pe_H (limit) - don't enforce for the model, breaks down at low Pe_H
     if F > Pe_H:
         F = Pe_H
+
+
+    # F = Pe_H # full collection (only for plotting in figure 7! Non realistic version)
 
     # calculate mass transport rate
     if params.char_length == 'H':

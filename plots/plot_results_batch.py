@@ -22,511 +22,6 @@ import os
 
 ## Batch simulation plots
 # Plot capture rate for different flow rates
-def plot_optimization(df,params,Q_in_vals, save_path=None):
-    Q_in = df["Q_in"]
-    Pe_H = df["Q_in"] / (params.D * params.W_c)
-    eq_perc = 100 * df["b_last"] / df["b_eq"]
-    capt_perc = df["capt_perc"]
-    #time_eq = df["time_eq"]
-    time_capt = df["time_capt"]
-    fig, ax1 = plt.subplots(figsize=(7,6))
-    Q_conversion_factor = (1 / 60) * 10 ** (-9)
-    Q_in_uL = Q_in_vals / Q_conversion_factor
-
-
-    # Left y-axis for capture percentage
-    ax1.plot(Q_in_uL, eq_perc, 'k-', label='Capture percentage')
-    ax1.set_xlabel('Flow rate [uL/min]')
-    ax1.set_ylabel('Capture percentage [%]', color='k')
-    ax1.tick_params(axis='y', labelcolor='k')
-    ax1.grid(True)
-    plt.xlim(0, max(Q_in_uL))  # set x-axis limits
-    plt.ylim(0, 100)  # set y-axis limits
-
-    # Right y-axis for capture time
-    ax2 = ax1.twinx()
-    ax2.plot(Q_in_uL,time_capt/60, 'r--', label='Capture time')
-    ax2.set_ylabel('90% capture time [min]', color='r')
-    ax2.tick_params(axis='y', labelcolor='r')
-    ax2.set_ylim(0,60)
-
-    # Right y-axis for Pe_H
-    #ax2 = ax1.twinx()
-    #ax2.plot(Q_in_uL, Pe_H, 'r--', label='Peclet number')
-    #ax2.set_ylabel('Peclet number', color='r')
-    #ax2.tick_params(axis='y', labelcolor='r')
-    ## ax2.set_ylim(0,10)
-
-    # Optional: add a combined legend
-    lines_1, labels_1 = ax1.get_legend_handles_labels()
-    lines_2, labels_2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-# same as above but added experimental data?
-def plot_optimization2(df, params, Q_in_vals, exp_data=None, save_path=None):
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    Q_in = df["Q_in"]
-    Pe_H = df["Q_in"] / (params.D * params.W_c)
-    capt_perc = df["capt_perc"]
-    time_capt = df["time_capt"]
-    fig, ax1 = plt.subplots(figsize=(7,6))
-
-    Q_conversion_factor = (1 / 60) * 1e-9
-    Q_in_uL = Q_in_vals / Q_conversion_factor
-
-    # Left y-axis for capture percentage
-    ax1.plot(Q_in_uL, capt_perc, 'k-', label='Capture percentage')
-    ax1.set_xlabel('Flow rate [uL/min]')
-    ax1.set_ylabel('Capture percentage [%]', color='k')
-    ax1.tick_params(axis='y', labelcolor='k')
-    ax1.grid(True)
-    plt.xlim(0, max(Q_in_uL))
-    plt.ylim(0, 100)
-
-    # Right y-axis for capture time
-    ax2 = ax1.twinx()
-    ax2.plot(Q_in_uL, time_capt / 60, 'r--', label='Capture time')
-    ax2.set_ylabel('90% capture time [min]', color='r')
-    ax2.tick_params(axis='y', labelcolor='r')
-    ax2.set_ylim(0, 60)
-
-    # Add experimental data if provided
-    if exp_data is not None:
-        Q_exp = 50  # uL/min
-        # Capture percentage
-        ax1.plot(Q_exp, exp_data['Bound (exp.)'][0]*100, 'bo', label='Exp. Bound 1')
-        ax1.plot(Q_exp, exp_data['Bound (exp.)'][1]*100, 'go', label='Exp. Bound 2')
-        ax1.plot(Q_exp, exp_data['Bound (exp.)'][2]*100, 'mo', label='Exp. Bound 3')
-
-        # Optional: also add simulated values for comparison
-        ax1.plot(Q_exp, exp_data['Bound (sim H/2)'][0]*100, 'b^', label='Sim H/2 Bound 1')
-        ax1.plot(Q_exp, exp_data['Bound (sim H/2)'][1]*100, 'g^', label='Sim H/2 Bound 2')
-        ax1.plot(Q_exp, exp_data['Bound (sim H/2)'][2]*100, 'm^', label='Sim H/2 Bound 3')
-
-    # Combine legends
-    lines_1, labels_1 = ax1.get_legend_handles_labels()
-    lines_2, labels_2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-## --- experimental graphs ----
-def plot_error(df, save_path = None):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    sc = plt.scatter(
-        df["Pe_H"],
-        df["V_in"],
-        c=100*df["error_max"],
-        cmap="jet",
-        s=50,
-        edgecolor='k',
-        vmin=0,
-    )
-
-    # Colorbar
-    cbar = plt.colorbar(sc, ax=ax)
-    cbar.set_label("Error")
-
-    # Axis scaling and grid
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-
-    # Labels and title
-    ax.set_xlabel("Peclet number")
-    ax.set_ylabel("Sample volume [uL]")
-    ax.set_title("Mass error")
-
-    plt.tight_layout()
-
-    plt.show()
-
-
-
-def plot_damkohler_batch(df, x_axis = None, save_path = None):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    # heatmap (interpolated colors)
-    #tri = ax.tricontourf(df["Pe_H"], df["Da"], df["time_eq"],
-    #                     levels=10, cmap="plasma")
-
-    # Split data
-    finite = df[np.isfinite(df["time_eq"])]
-    infinite = df[np.isinf(df["time_eq"])]
-
-    # set colormap range
-    if len(finite) > 0:
-        vmin = np.log10(finite["time_eq"].values).min()  # or manually, e.g., 2
-        vmax = np.log10(finite["time_eq"].values).max()  # corrected
-    else:
-        vmin = 0
-        vmax = 4  # fallback value
-
-    if x_axis == "Pe_H":
-        x_values_inf = infinite["Pe_H"]
-        x_values = finite["Pe_H"]
-        x_label = "Peclet number [ ]"
-
-    elif x_axis == "Q_in":
-        x_values_inf = infinite["Q_in"].values * 1e9 * 60
-        x_values = finite["Q_in"].values * 1e9 * 60
-        x_label = "Flow rate [uL/min]"
-
-    # infinite
-    plt.scatter(
-        x_values_inf,
-        infinite["Da"],
-        color='white',
-        s=50,
-        edgecolor='k',
-        label='inf'
-    )
-
-    # Plot finite values with colormap
-    sc = plt.scatter(
-        x_values,
-        finite["Da"],
-        c=np.log10(finite["time_eq"].values),
-        cmap="jet",
-        s=50,
-        edgecolor='k',
-        vmin=0,
-        vmax=vmax
-    )
-
-    plt.colorbar(label="log(t_eq)")
-
-    # log scale for both axes
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    plt.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    plt.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-    #plt.xlim(1e-2, 1e4)  # set x-axis limits
-    plt.ylim(1e-3, 1e3)  # set y-axis limits
-
-    # overlay equilibrium markers
-    #for _, row in df.iterrows():
-    #    if row["reached_eq"]:
-    #        ax.scatter(row["Pe_H"], row["F"], color="black", marker="o", s=30, label="Reached eq")
-    #    else:
-    #        ax.scatter(row["Pe_H"], row["F"], color="red", marker="+", s=30, label="Not reached eq")
-
-    # avoid duplicate labels
-    handles, labels = ax.get_legend_handles_labels()
-    unique = dict(zip(labels, handles))
-    ax.legend(unique.values(), unique.keys(), loc="best")
-
-    ax.set_xlabel(x_label)
-
-    ax.set_ylabel("Damkohler number [ ]")
-    ax.set_title("EpCAM capture characteristics")
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-
-
-
-def plot_time_eq_interp(df, grid_size=100, save_path=None):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    # Separate finite and infinite points
-    finite = df[np.isfinite(df["time_eq"])]
-    infinite = df[np.isinf(df["time_eq"])]
-
-    # Convert units
-    x_f = finite["Q_in"].values * 1e9 * 60  # uL/min
-    # x_f = finite["Pe_H"].values
-    y_f = finite["V_in"].values * 1e9       # uL
-    z_f = np.log10(finite["time_eq"].values)  # log10(s)
-
-    x_inf = infinite["Q_in"].values * 1e9 * 60
-    y_inf = infinite["V_in"].values * 1e9
-
-    # Create fine grid for interpolation
-    xi = np.logspace(np.log10(x_f.min()), np.log10(x_f.max()), grid_size)
-    yi = np.logspace(np.log10(y_f.min()), np.log10(y_f.max()), grid_size)
-    XI, YI = np.meshgrid(xi, yi)
-
-    # Interpolate using linear method
-    ZI = griddata((x_f, y_f), z_f, (XI, YI), method='linear')
-
-    # Plot interpolated contour
-    cntr = ax.contourf(XI, YI, ZI, levels=30, cmap="turbo")
-
-    # Overlay original finite points
-    ax.scatter(x_f, y_f, c="k", s=10, alpha=0.6)
-
-    # Overlay original infinite points in white
-    if len(x_inf) > 0:
-        ax.scatter(x_inf, y_inf, color="white", s=50, edgecolor="k", label="inf")
-
-    # Colorbar
-    cbar = plt.colorbar(cntr, ax=ax)
-    cbar.set_label("log10(t_eq [s])")
-
-    # Axis scaling and grid
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-
-    # Labels and title
-    ax.set_xlabel()
-    ax.set_xlabel(x_label)
-    ax.set_ylabel("Sample volume [uL]")
-    ax.set_title("Equilibrium time (interpolated, griddata)")
-
-    # Legend
-    if len(x_inf) > 0:
-        ax.legend(loc="best")
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-def plot_capt_perc_interp(df, grid_size=100, save_path=None):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    # Use all points, ignore where Q_in or V_in or capt_perc is NaN
-    valid = df[["Q_in", "V_in", "capt_perc"]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    # Convert units
-    x = valid["Q_in"].values * 1e9 * 60  # Flow rate [uL/min]
-    y = valid["V_in"].values * 1e9  # Volume [uL]
-    z = valid["capt_perc"].values  # Capture percentage
-
-    # Create log-spaced interpolation grid
-    xi = np.logspace(np.log10(x.min()), np.log10(x.max()), grid_size)
-    yi = np.logspace(np.log10(y.min()), np.log10(y.max()), grid_size)
-    XI, YI = np.meshgrid(xi, yi)
-
-    # Interpolate using griddata (linear)
-    ZI = griddata((x, y), z, (XI, YI), method="linear")
-
-    # Mask out invalid interpolation regions (NaN)
-    ZI_masked = np.ma.masked_invalid(ZI)
-
-    # Plot interpolated contour
-    cntr = ax.contourf(XI, YI, ZI_masked, levels=30, cmap="turbo")
-
-    # Overlay data points
-    ax.scatter(x, y, c="k", s=10, alpha=0.5)
-
-    # Colorbar
-    cbar = plt.colorbar(cntr, ax=ax)
-    cbar.set_label("Capture rate [%]")
-
-    # Axis scaling and grid
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-
-    # Labels and title
-    ax.set_xlabel("Flow rate [uL/min]")
-    ax.set_ylabel("Sample volume [uL]")
-    ax.set_title("Capture percentage (interpolated, griddata)")
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-def plot_site_occupancy_interp(df, params, grid_size=100, save_path=None):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    # Keep only valid numeric rows
-    valid = df[["Q_in", "V_in", "b_last"]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    # Convert units
-    x = valid["Q_in"].values * 1e9 * 60  # Flow rate [uL/min]
-    y = valid["V_in"].values * 1e9  # Volume [uL]
-    # z = 100 * valid["b_last"].values / params.b_m  # Occupancy rate [%]
-    z = 100 * valid["b_last"].values / df["b_eq"]  # Ratio to equilibrium [%]
-
-    # Create log-spaced interpolation grid
-    xi = np.logspace(np.log10(x.min()), np.log10(x.max()), grid_size)
-    yi = np.logspace(np.log10(y.min()), np.log10(y.max()), grid_size)
-    XI, YI = np.meshgrid(xi, yi)
-
-    # Interpolate using griddata (linear)
-    ZI = griddata((x, y), z, (XI, YI), method="linear")
-
-    # Mask out invalid interpolation regions (NaN)
-    ZI_masked = np.ma.masked_invalid(ZI)
-
-    # Plot interpolated contour
-    cntr = ax.contourf(XI, YI, ZI_masked, levels=30, cmap="turbo")
-
-    # Overlay data points
-    ax.scatter(x, y, c="k", s=10, alpha=0.5)
-
-    # Colorbar
-    cbar = plt.colorbar(cntr, ax=ax)
-    cbar.set_label("Occupancy rate [%]")
-
-    # Axis scaling and grid
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-
-    # Labels and title
-    ax.set_xlabel("Flow rate [uL/min]")
-    ax.set_ylabel("Sample volume [uL]")
-    ax.set_title("Capture percentage (interpolated, griddata)")
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-def plot_flow_volume(df, save_path=None):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    # Split data
-    finite = df[np.isfinite(df["time_eq"])]
-    infinite = df[np.isinf(df["time_eq"])]
-
-    # log scale of equilibrium time
-    vmin = np.log10(finite["time_eq"].values).min()
-    vmax = np.log10(finite["time_eq"].values).max()
-
-    # Plot infinite values separately
-    ax.scatter(
-        infinite["Q_in"]*1e9*60,   # flow rate [uL/min]
-        infinite["V_in"]*1e9,      # volume [uL]
-        color="white",
-        s=50,
-        edgecolor="k",
-        label="inf"
-    )
-
-    # Plot finite values
-    sc = ax.scatter(
-        finite["Q_in"]*1e9*60,     # flow rate [uL/min]
-        finite["V_in"]*1e9,        # volume [uL]
-        c=np.log10(finite["time_eq"].values),
-        cmap="turbo",
-        s=50,
-        edgecolor="k",
-        vmin=vmin,
-        vmax=vmax
-    )
-
-    # Colorbar
-    cbar = plt.colorbar(sc, ax=ax)
-    cbar.set_label("log10(t_eq [s])")
-
-    # Axis scaling
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-
-    # Labels and title
-    ax.set_xlabel("Flow rate [nL/min]")
-    ax.set_ylabel("Sample volume [nL]")
-    ax.set_title("Equilibrium time vs flow rate and volume")
-
-    # Legend
-    handles, labels = ax.get_legend_handles_labels()
-    unique = dict(zip(labels, handles))
-    ax.legend(unique.values(), unique.keys(), loc="best")
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
-
-
-
-def plot_capture_vs_peH_lambda(df, save_path=None):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    tri = ax.tricontourf(df["Pe_H"], df["F"], df["capt_perc"],
-                         levels=10, cmap="plasma", norm=mcolors.LogNorm())
-    fig.colorbar(tri, ax=ax, label="capt_perc")
-
-    ax.scatter(df["Pe_H"], df["F"], color="black", marker="o", s=30)
-
-    # log scale for both axes
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    plt.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    plt.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-    plt.xlim(1e-2, 1e4)  # set x-axis limits
-    plt.ylim(1e-3, 1e4)  # set y-axis limits
-
-    # avoid duplicate labels
-    handles, labels = ax.get_legend_handles_labels()
-    unique = dict(zip(labels, handles))
-    ax.legend(unique.values(), unique.keys(), loc="best")
-
-    ax.set_xlabel("Pe_H (log)")
-    ax.set_ylabel("Lambda (log)")
-    ax.set_title("Capture % across Pe_H and F")
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
-        plt.close()
-    else:
-        plt.show()
 
 def plot_t_eq_overview(df, grid_size=100, save_path=None):
     fig, ax = plt.subplots(figsize=(7, 6))
@@ -669,7 +164,7 @@ def plot_Da_overview_scatter(df, save_path=None):
     fig, ax = plt.subplots(figsize=(7, 6))
 
     # Keep only valid numeric rows
-    valid = df[["Pe_H","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
+    valid = df[["V","Pe_H","V_in","b_m","H_c","D","Q_in","Da_2","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
 
     # Extract arrays
     tau_mt = 1 / valid["k_m"]
@@ -680,7 +175,7 @@ def plot_Da_overview_scatter(df, save_path=None):
     # y = (valid["k_on"] * valid["c_in"] + valid["k_off"]).values
     #y = valid["k_off"] / valid["k_on"]
     # z = valid["time_eq"]
-    z = valid["Pe_H"]
+    z = valid["Da_2"]
 
     #x = valid["k_m"] / valid["tau"]
     #y = (valid["k_on"] * valid["c_in"]).values
@@ -693,9 +188,9 @@ def plot_Da_overview_scatter(df, save_path=None):
 
     # transport based
     #x = valid["k_m"]
-    x = valid["F"]
+    x = valid["Q_in"] / valid["V"]
     #y = (valid["k_on"] * valid["c_in"] + valid["k_off"]).values
-    y = (valid["k_on"] * valid["c_in"])
+    y = valid["k_on"] * valid["c_in"] + valid["k_off"]
     #y = (valid["k_on"])
 
     #y = valid["k_on"]
@@ -729,8 +224,8 @@ def plot_Da_overview_scatter(df, save_path=None):
     ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
 
     # Labels and title
-    ax.set_xlabel("F [ ]")
-    ax.set_ylabel("k_on * c_in [1/s]")
+    ax.set_xlabel("Transport rate [1/s]")
+    ax.set_ylabel("Binding rate [1/s]")
     ax.set_title("Damkohler number")
 
     plt.tight_layout()
@@ -939,7 +434,7 @@ def plot_t_eq_overview_scatter3D(df, save_path=None):
     ax = fig.add_subplot(111, projection='3d')
 
     # Keep only valid numeric rows
-    valid = df[["S","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
+    valid = df[["b_eq","W_c","S","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
 
     t_val = valid["time_eq"]
     # Ensure t_val > 0 for log scaling
@@ -952,12 +447,22 @@ def plot_t_eq_overview_scatter3D(df, save_path=None):
     #y_log = np.log10(valid["k_on"] * valid["c_in"])
     z_log = np.log10(valid["Q_in"] * valid["c_in"])
 
+
     # test below --
-    moles_mt = valid["S"] * valid["c_in"] * valid["k_m"]  # mol / s
-    moles_bind = valid["b_m"] * valid["S"] * (valid["k_on"] * valid["c_in"] + valid["k_off"])
+    moles_mt = valid["c_in"] * valid["k_m"]
+    #moles_mt = valid["c_in"] * valid["k_m"] * valid["S"]
+    moles_bind = (valid["k_on"] * valid["c_in"] + valid["k_off"])
     #moles_bind =    # [1/s]
 
-    moles_supply = valid["c_in"] * valid["Q_in"]    # mol/s
+    #moles_supply = valid["c_in"] * valid["Q_in"]    # mol/s
+    #moles_bind =    # [1/s]
+
+    moles_supply = (valid["c_in"] * valid["Q_in"]) / ((valid["H_c"]) * valid["W_c"])    # mol/s
+
+    # moles_mt = valid["c_in"] * valid["k_m"] * valid["S"]
+    # moles_bind =  (valid["k_on"] * valid["c_in"] + valid["k_off"])
+    # moles_supply = (valid["c_in"] * valid["Q_in"])    # mol/s
+
 
     x_log = np.log10(moles_mt)
     y_log = np.log10(moles_bind)
@@ -1141,74 +646,140 @@ def plot_t_eq_overview_scatter3D_animated(df, save_path=None, gif_path=None):
 
 def plot_t_eq_two_axis_scatter(df, save_path=None):
 
+    cols = ["Pe_H","W_c","b_eq","S","V","L_s","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]
 
-    # Keep only valid numeric rows
-    valid = df[["b_eq","S","V","L_s","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
+    invalid_mask = (
+            df[cols].isna() | df[cols].isin([np.inf, -np.inf])
+    ).any(axis=1)
 
-    # Extract arrays
-    #tau_mt = 1 / (valid["k_m"] / ((valid["H_c"]) / 2))
-    tau_mt = 1 / (valid["k_m"] / valid["L_s"])
-    tau_mt = 1 / (valid["k_m"] / 1)
-    tau_bind =  (valid["k_on"] * valid["c_in"] + valid["k_off"])
-    tau_supply = 1 / (valid ["V"] / valid["Q_in"])
+    invalid_df = (
+        df.loc[invalid_mask, cols]
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna(how="all")
+    )
+
+    valid = df[["Pe_H","W_c","b_eq","S","V","L_s","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
+    invalid = invalid_df[["Pe_H","W_c","b_eq","S","V","L_s","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
 
     # with moles
-    moles_mt = valid["S"] * valid["c_in"] * valid["k_m"]  # mol / s
+    moles_mt = valid["k_m"] * valid["c_in"] * ((valid["H_c"]) * valid["W_c"]) # mol/m3 * m/s = mol/(m2/s) *
     moles_bind =  (valid["k_on"] * valid["c_in"] + valid["k_off"])
-    #moles_bind =    # [1/s]
+    moles_supply = (valid["c_in"] * valid["Q_in"])     # mol/s
+    moles_eff = np.maximum(moles_mt,moles_supply)
 
-    moles_supply = valid["c_in"] * valid["Q_in"]    # mol/s
+    test = ((valid["k_m"]**2) * (valid["c_in"]**2) * valid["V"])  / ((valid["Q_in"]))
 
-    #moles_mt = valid["F"] * moles_supply
 
-    tau_transport = tau_mt / tau_supply
-    tau_limiting = np.minimum(tau_mt, tau_supply)
-    tau_eff = 1 / (1 / tau_mt + 1 / tau_supply)
-    moles_eff = 1 / (1 / moles_mt + 1 / moles_supply)   # mol/s
-    #moles_eff = np.minimum(moles_mt, moles_supply)
-    moles_eff = np.minimum(moles_mt, moles_supply)
+    tau_transport = valid["Q_in"] / (valid["V"])
+    c_eq = valid["k_m"] * valid["c_in"] * valid["V"] / valid["Q_in"]
+    k_D = valid["k_off"] / valid["k_on"]
+    c_crit = k_D
+    tau_bind = valid["k_on"] * valid["c_in"] + valid["k_off"]
+    #tau_bind = valid["k_on"] * valid["c_in"] + valid["k_off"]
+    tau_bind_dilute = valid["k_off"]
+
+
+    mask = valid["c_in"] <= k_D
+
+    #Da = (k_on * b_m) / k_m                 # definition like in Squires
+
+    t_crit = - valid["V"] / valid["Q_in"] * np.log(1 - (c_crit / c_eq))
+    eff1 = valid["F"] / valid["Pe_H"]
+
+    moles_eff = moles_supply * eff1
 
     z = valid["time_eq"]
+    x = (valid["Q_in"]) * 60 * 1e9
+    x_invalid = (invalid["Q_in"]) * 60 * 1e9
+    #x = (valid["k_m"]) / valid["L_s"]
+    #x = valid["c_in"] * valid["Q_in"] * eff1
+    y = (valid["Q_in"]) * valid["time_eq"] * 1e9
+    y_invalid = (invalid["Q_in"]) * invalid["time_eq"] * 1e9
 
-    # transport based
-    #x = tau_eff
-    #y = tau_bind
-    x = moles_eff
-    y = moles_bind
+    moles_mt = valid["c_in"] * valid["k_m"]
+    moles_supply = valid["c_in"] * valid["Q_in"]
+    moles_bind = (valid["k_on"] * valid["c_in"] + valid["k_off"])
+
+
+
+
+    y[mask] = tau_bind_dilute[mask]
 
     # Ensure z > 0 for log scaling
     z = np.clip(z, np.nanmin(z[z > 0]), None)
 
     # --- Log-scaled color normalization ---
     norm = LogNorm(vmin=z.min(), vmax=z.max())
-    norm_tau = LogNorm(vmin=tau_eff.min(), vmax=tau_eff.max())
-    norm_mol = LogNorm(vmin=moles_eff.min(), vmax=moles_eff.max())
 
-    # 2D scatter plot
-    plt.figure(figsize=(7, 6))
-    sc = plt.scatter(
-        moles_mt, moles_supply, #tau_mt, tau_supply,
-        c=moles_eff, #c=tau_eff,
-        cmap="viridis",
-        norm = norm_mol,
-        s=50,
-        alpha=0.8
-    )
+    tau_supply = valid["Q_in"] / valid["V"]
 
-    plt.xscale("log")
-    plt.yscale("log")
-    #plt.xlabel("tau_mt [s] (transport timescale)")
-    #plt.ylabel("tau_supply [s] (supply timescale)")
-    plt.xlabel("moles_km [mol/s] (transport timescale)")
-    plt.ylabel("moles_supply [mol/s] (supply timescale)")
-    plt.title("2D timescale plot: color = tau_eff")
-    plt.colorbar(sc, label="moles_eff [s]")
-    plt.grid(True, which="both", ls="--", alpha=0.5)
+    supply_total = moles_eff
+
+    # Ensure z > 0 for log scaling
+    supply_total = np.clip(supply_total, np.nanmin(supply_total[supply_total > 0]), None)
+
+    # --- Log-scaled color normalization ---
+    norm_transport = LogNorm(vmin=supply_total.min(), vmax=supply_total.max())
+
+    # # 2D scatter plot
+    # plt.figure(figsize=(7, 6))
+    # sc = plt.scatter(
+    #     tau_transport, tau_supply, #tau_mt, tau_supply,
+    #     c=moles_eff, #c=tau_eff,
+    #     cmap="inferno",
+    #     norm = norm_transport,
+    #     s=50,
+    #     alpha=0.8
+    # )
+    #
+    # plt.xscale("log")
+    # plt.yscale("log")
+    # #plt.xlabel("tau_mt [s] (transport timescale)")
+    # #plt.ylabel("tau_supply [s] (supply timescale)")
+    # plt.xlabel("k_m / L_s [1/s] (transport timescale)")
+    # plt.ylabel("Q / V [1/s] (supply timescale)")
+    # plt.title("transport time scales")
+    # plt.colorbar(sc, label="time_eq [s]")
+    # plt.grid(True, which="both", ls="--", alpha=0.5)
+
+    # --- Add diagonal y=x line ---
+    lims = [
+        min(plt.xlim()[0], plt.ylim()[0]),
+        max(plt.xlim()[1], plt.ylim()[1])
+    ]
+    plt.plot(lims, lims, '--', linewidth=1, alpha=0.7)
+
+
     plt.show()
 
     fig, ax = plt.subplots(figsize=(7, 6))
     # Scatter plot
-    sc = ax.scatter(x, y, c=z, cmap="turbo", norm=norm, s=40, edgecolor="none")
+    # Normal valid points (non-dilute)
+    normal_mask = ~mask
+    sc = ax.scatter(x[normal_mask], y[normal_mask], c=z[normal_mask], cmap="turbo",
+                    norm=LogNorm(vmin=z.min(), vmax=z.max()), s=40, edgecolor="none", label="valid")
+
+    # Dilute points highlighted (different marker/edge)
+    ax.scatter(x_invalid, y_invalid, facecolors='none', edgecolors='black', s=50, label="dilute")
+
+
+    # Plot invalid points as black
+    # Compute same quantities as for valid points
+    c_eq_invalid = invalid_df["k_m"] * invalid_df["c_in"] * invalid_df["V"] / invalid_df["Q_in"]
+    k_D_invalid = invalid_df["k_off"] / invalid_df["k_on"]
+    c_crit_invalid = k_D_invalid
+    tau_bind_invalid = invalid_df["k_on"] * invalid_df["c_in"] + invalid_df["k_off"]
+    tau_bind_dilute_invalid = invalid_df["k_off"]
+
+    mask_invalid = invalid_df["c_in"] <= k_D_invalid
+
+    tau_transport_invalid = (invalid_df["Q_in"] / invalid_df["V"])
+    #tau_transport_invalid = invalid_df["k_m"]  / invalid_df["L_s"]
+    x_invalid = tau_transport_invalid
+    z_invalid = invalid_df["time_eq"]
+    y_invalid = tau_bind_invalid.copy()
+    y_invalid[mask_invalid] = tau_bind_dilute_invalid[mask_invalid]
+    #ax.scatter(x_invalid, y_invalid, color="black", s=10, alpha=0.3, label="invalid")
 
     # Colorbar (log scale)
     cbar = plt.colorbar(sc, ax=ax)
@@ -1221,12 +792,14 @@ def plot_t_eq_two_axis_scatter(df, save_path=None):
     ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
     ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
 
+    #ax.scatter(0.0067, 0.0052, color = "black", s = 20)
+
     # Labels and title
     #ax.set_xlabel("tau_eff [1/s] ")
     #ax.set_ylabel("tau_b [1/s]")
-    ax.set_xlabel("transport rate [mol/s] ")
-    ax.set_ylabel("binding rate [mol/s]")
-    ax.set_title("Equilibrium time (scatter view)")
+    ax.set_xlabel("tau_transport (Q/V) [1/s]")
+    ax.set_ylabel("tau_binding (k_on*c_in + k_off) [1/s]")
+    ax.set_title("Equilibrium time")
 
     plt.tight_layout()
 
@@ -1319,9 +892,18 @@ def plot_V_min_vs_Q_in(df, save_path=None):
 
     y = 1e9 * valid["time_eq"] * valid["Q_in"]
 
-    # transport based
-    x = valid["Q_in"]*60*1e9
+    css = valid["k_m"] / valid["L_s"]
+    test = valid["Q_in"] / valid["V"]
+    tau_transport = css + test
+    #z = test / css
+    tau_bind = valid["k_on"] * valid["c_in"] + valid["k_off"]
+    tau_bind_dilute = valid["k_off"]
+    x = valid["Q_in"]
     z = valid["time_eq"]
+
+    # transport based
+    #x = valid["Q_in"]*60*1e9
+    #z = valid["time_eq"]
 
     # Ensure z > 0 for log scaling
     z = np.clip(z, np.nanmin(z[z > 0]), None)
@@ -1338,8 +920,8 @@ def plot_V_min_vs_Q_in(df, save_path=None):
 
     # Colorbar (log scale)
     cbar = plt.colorbar(sc, ax=ax)
-    #cbar.set_label("Equilibrium time [s] (log scale)")
     cbar.set_label("Equilibrium time [s]")
+    #cbar.set_label("Minimum volume requied [uL]")
 
     # Axis scaling and grid
     ax.set_xscale("log")
@@ -1349,8 +931,370 @@ def plot_V_min_vs_Q_in(df, save_path=None):
 
     # Labels and title
     ax.set_xlabel("Q_in [uL/min]")
-    ax.set_ylabel("Required volume [uL]")
+    ax.set_ylabel("Minimum volume required [uL]")
     ax.set_title("Volume requirement")
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+        plt.close()
+    else:
+        plt.show()
+
+from matplotlib.colors import LogNorm
+
+def plot_km_Q(df, save_path=None):
+
+
+    # Keep only valid numeric rows
+    valid = df[["W_c","Pe_H","b_eq","S","V","L_s","V_in","b_m","H_c","D","Q_in","Da","F","k_m", "k_on", "c_in", "time_eq", "tau", "k_off"]].replace([np.inf, -np.inf], np.nan).dropna()
+
+    moles_mt = valid["c_in"] * valid["k_m"]
+    moles_supply = valid["c_in"] * valid["Q_in"]
+    moles_bind = (valid["k_on"] * valid["c_in"] + valid["k_off"])
+
+    eff1 = valid["F"] / valid["Pe_H"]
+    eff2 = moles_mt / moles_supply
+
+    eff3 = np.minimum(eff2,1)
+
+    z = valid["time_eq"]
+    x = valid["Q_in"]
+    #x = valid["c_in"] * valid["k_m"] * valid["S"]
+    y = valid["k_m"]
+
+
+    #x = eff1
+    #y = eff2
+
+    #x = moles_mt
+    #y = moles_bind
+
+
+
+    # Ensure z > 0 for log scaling
+    z = np.clip(z, np.nanmin(z[z > 0]), None)
+
+    norm = LogNorm(vmin=z.min(), vmax=z.max())
+
+    # 2D scatter plot    fig, ax = plt.subplots(figsize=(7, 6))
+    #     # Scatter plot
+    #     sc = ax.scatter(x, y, c=z, cmap="turbo", norm=norm, s=40, edgecolor="none")
+    fig, ax = plt.subplots(figsize=(7, 6))
+    sc = ax.scatter(
+        x, y, #tau_mt, tau_supply,
+        c=z,
+        cmap="viridis",
+        norm=norm,
+        s=50,
+        alpha=0.8
+    )
+
+
+    # Colorbar (log scale)
+    cbar = plt.colorbar(sc, ax=ax)
+    cbar.set_label("Eq time [s]")
+
+    plt.xscale("log")
+    plt.yscale("log")
+
+    plt.xlabel("Q_in [m3/s]")
+    plt.ylabel("k_m [m/s]")
+    plt.title("")
+    plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.show()
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+        plt.close()
+    else:
+        plt.show()
+
+def plot_V_min_vs_Q_in_new(df, save_path=None):
+
+    # Keep only valid numeric rows
+    valid = df[[
+        "V","L_s","V_in","b_m","H_c","D","Q_in","Da","F",
+        "k_m","k_on","c_in","time_eq","tau","k_off"
+    ]].replace([np.inf, -np.inf], np.nan).dropna()
+
+    # Extract arrays
+    x = valid["Q_in"] * 60 * 1e9
+    y = valid["time_eq"] * valid["Q_in"] * 1e9
+    z = valid["time_eq"]
+
+    # Ensure z > 0 (required for logs)
+    z = np.clip(z, np.nanmin(z[z > 0]), None)
+
+    # ---------------- RBF INTERPOLATION (log–log space) ----------------
+
+    logx = np.log10(x)
+    logy = np.log10(y)
+    logz = np.log10(z)
+
+    Xg, Yg = np.meshgrid(
+        np.logspace(np.log10(x.min()), np.log10(x.max()), 400),
+        np.logspace(np.log10(y.min()), np.log10(y.max()), 400)
+    )
+
+    Xg_log = np.log10(Xg)
+    Yg_log = np.log10(Yg)
+
+    rbf = Rbf(logx, logy, logz,
+              function='linear',
+              smooth=0.05)
+
+    Zg_log = rbf(Xg_log, Yg_log)
+    Zg = 10**Zg_log
+
+    # -------------------------------------------------------------------
+
+    # Determine contour levels: decades of z
+    zmin_dec = np.floor(np.log10(z.min()))
+    zmax_dec = np.ceil(np.log10(z.max()))
+    levels = 10**np.arange(zmin_dec, zmax_dec + 1)
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+
+    # ---------------- SHADED CONTOURF ----------------
+    contour = ax.contourf(
+        Xg, Yg, Zg,
+        levels=levels,
+        cmap="plasma",
+        norm=LogNorm(),
+        alpha=0.6
+    )
+    cbar = plt.colorbar(contour, ax=ax)
+    cbar.set_label("Equilibrium time [s] (interpolated)")
+    # -------------------------------------------------
+
+    # ---------------- CONTOUR LINES ----------------
+    contour_lines = ax.contour(
+        Xg, Yg, Zg,
+        levels=levels,
+        colors="black",
+        linewidths=0.8
+    )
+
+    ax.clabel(
+        contour_lines,
+        fmt=lambda v: f"{v:.0e}",
+        fontsize=8,
+        inline=False
+    )
+    # -------------------------------------------------
+
+    # ---------------- SCATTER OF RAW DATA ----------------
+    # sc = ax.scatter(
+    #     x, y, c=z,
+    #     cmap="turbo",
+    #     norm=LogNorm(vmin=z.min(), vmax=z.max()),
+    #     s=40,
+    #     edgecolor="black", linewidth=0.4
+    # )
+    # # ------------------------------------------------------
+
+    # ax.set_aspect('equal', adjustable='box')
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
+    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
+
+    ax.set_xlim(1e-3, 1e1)
+    ax.set_ylim(1e-3, 1e1)
+
+    ax.set_xlabel("Flow rate [uL/min]")
+    ax.set_ylabel("Required volume [uL]")
+    ax.set_title("Volume required")
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=300)
+        plt.close()
+    else:
+        plt.show()
+
+    return Xg, Yg, Zg
+
+
+def t_eq_new(df, save_path=None):
+
+    # Keep only valid numeric rows
+    valid = df[[
+        "V","L_s","V_in","b_m","H_c","D","Q_in","Da","Da_2","F",
+        "k_m","k_on","c_in","time_eq","tau","k_off"
+    ]].replace([np.inf, -np.inf], np.nan).dropna()
+
+    # Extract arrays
+    x = valid["Q_in"] / valid["V"]
+    y = valid["k_on"] * valid["c_in"] + valid["k_off"]
+    z = valid["time_eq"].values
+
+    # Ensure z > 0 (required for logs)
+    z = np.clip(z, np.nanmin(z[z > 0]), None)
+
+    # ---------------- RBF INTERPOLATION (log–log space) ----------------
+
+    logx = np.log10(x)
+    logy = np.log10(y)
+    logz = np.log10(z)
+
+    Xg, Yg = np.meshgrid(
+        np.logspace(np.log10(x.min()), np.log10(x.max()), 25),
+        np.logspace(np.log10(y.min()), np.log10(y.max()), 25)
+    )
+
+    Xg_log = np.log10(Xg)
+    Yg_log = np.log10(Yg)
+
+    rbf = Rbf(logx, logy, logz,
+              function='linear',
+              smooth=0.10)
+
+    Zg_log = rbf(Xg_log, Yg_log)
+    Zg = 10**Zg_log
+
+    # -------------------------------------------------------------------
+
+    # Determine contour levels: decades of z
+    zmin_dec = np.floor(np.log10(z.min()))
+    zmax_dec = np.ceil(np.log10(z.max()))
+    levels = 10**np.arange(zmin_dec, zmax_dec + 1)
+    z_color_max = 1e4
+    levels_plot = levels[levels <= z_color_max]
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+
+    # ---------------- SHADED CONTOURF ----------------
+    contour = ax.contourf(
+        Xg, Yg, Zg,
+        levels=levels_plot,
+        cmap="Blues",
+        norm=LogNorm(vmin=levels[0], vmax=z_color_max),
+        alpha=0.9
+    )
+    cbar = plt.colorbar(contour, ax=ax)
+    cbar.set_label("Equilibrium time [s]")
+    # -------------------------------------------------
+
+    # ---------------- CONTOUR LINES ----------------
+    contour_lines = ax.contour(
+        Xg, Yg, Zg,
+        levels=levels_plot,
+        colors="black",
+        linewidths=0.8
+    )
+
+    ax.clabel(
+        contour_lines,
+        fmt=lambda v: f"{v:.0e}",
+        fontsize=8,
+        inline=False
+    )
+    # -------------------------------------------------
+
+    # ---------------- SCATTER OF RAW DATA ----------------
+    # sc = ax.scatter(
+    #     x, y, c=z,
+    #     cmap="turbo",
+    #     norm=LogNorm(vmin=z.min(), vmax=z.max()),
+    #     s=40,
+    #     edgecolor="black", linewidth=0.4
+    # )
+    # # ------------------------------------------------------
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
+    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
+
+
+    ax.set_xlim(1e-3, 1e1)
+    ax.set_ylim(1e-3, 1e1)
+
+    ax.set_xlabel("Transport rate [1/s]")
+    ax.set_ylabel("Binding rate [1/s]")
+    #ax.set_title("Equilibrium time")
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        save_dir = os.path.dirname(save_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        plt.savefig(save_path, format="svg", bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
+
+    return Xg, Yg, Zg
+
+def plot_t_eq_two_axis_scatter_new(df, save_path=None):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LogNorm
+    import os
+
+    # Columns required for the final plot
+    cols = ["L_s","Pe_H","F","k_m","k_on","k_off","c_in","c_eff","Q_in","V","time_eq"]
+
+    # Remove NaN/inf rows
+    valid = (
+        df[cols]
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna()
+    )
+
+    # ---- Filter to only points where F = Pe_H ----
+    #equality_mask = valid["F"] == valid["Pe_H"]
+    #valid = valid[equality_mask]
+
+    # If nothing left, exit cleanly
+    if len(valid) == 0:
+        print("No points satisfy F = Pe_H")
+        return
+
+    # Compute quantities actually used in the final figure
+    x = valid["Q_in"] / valid["V"]                       # tau_transport
+    y = valid["k_on"] * valid["c_in"] + valid["k_off"]   # tau_bind
+    z = valid["time_eq"]
+
+    # Ensure z > 0 for log color scale
+    z = np.clip(z, np.nanmin(z[z > 0]), None)
+
+    # ---- Plot ----
+    fig, ax = plt.subplots(figsize=(7, 6))
+
+    sc = ax.scatter(
+        x, y,
+        c=z,
+        cmap="turbo",
+        norm=LogNorm(vmin=z.min(), vmax=z.max()),
+        s=40,
+        edgecolor="none"
+    )
+
+    cbar = plt.colorbar(sc, ax=ax)
+    cbar.set_label("Eq. time [s]")
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
+    ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
+
+    ax.set_xlabel("tau_transport (Q/V) [1/s]")
+    ax.set_ylabel("tau_binding (k_on*c_in + k_off) [1/s]")
+    ax.set_title("Equilibrium Time (Only points where F = Pe_H)")
 
     plt.tight_layout()
 

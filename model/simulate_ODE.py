@@ -3,9 +3,9 @@ from scipy.integrate import solve_ivp
 from biosensor.plots.plot_results_single import *
 from biosensor.plots.plot_results_batch import *
 from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
+import cProfile
 
 def simulate(params, print_results = False, plot_results = False, max_time = None):
-
     # unpack params
     W_c, L_c, H_c = params.W_c, params.L_c, params.H_c
     D = params.D
@@ -15,8 +15,14 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # initial conditions
     # y0_hat = [0, c_0 / c_in, 0, 0] # b0, c0, N0, c_s_hat
-    y0_hat = [0, params.c_0 / params.c_in, 0] # b0, c0, N0
+    y0_hat = [0, params.c_0 / params.c_in, params.c_0 / params.c_in, 0, 0] # b0, c0, c_s_hat,  N0, N0
 
+    # fraction of filling possible
+    k_m = compute_k_m(params.Q_in, params)
+    J_in = c_in * Q_in # mol/s
+    J_D = W_c * H_c * c_in * k_m
+    if k_m > 0 and c_in > 0:
+        params.fill_frac = J_D / J_in
 
     # time range (in terms of residence times)
     V = W_c * L_c * H_c  # channel volume [m^3]
@@ -26,30 +32,34 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # time length of simulation (if undefined: 3x pulse time)
     if max_time == None:
-        t_span_hat = (0, 3 * t_pulse_hat)
+        t_span_hat = (0, 1.5 * t_pulse_hat)
     else:
         max_time_hat = max_time / tau   # non dimensionalized time
         t_span_hat = (0, max_time_hat)  # simulate specified time
 
     dt_hat = 1e-2  # nondimensional time step (note: just for visualization, solve_ivp defines its own timestep)
     nt = int(np.ceil((t_span_hat[1] - t_span_hat[0]) / dt_hat)) + 1
-    t_eval_hat = np.linspace(t_span_hat[0], t_span_hat[1], nt)
+    n_plot = 50000
+    t_eval_hat = np.linspace(t_span_hat[0], t_span_hat[1], n_plot)
 
     # solve biosensor ODE (best result: LSODA)
+    # cProfile.run('solve_ivp(ode_binding_hat, t_span_hat, y0_hat, method="LSODA", t_eval=t_eval_hat, args=(params,))')
     sol = solve_ivp(ode_binding_hat,
                     t_span_hat,
                     y0_hat,
                     method='LSODA',
                     t_eval=t_eval_hat,
                     args=(params,),
-                    rtol=1e-8,
-                    atol=1e-10)
+                    rtol=1e-5,
+                    atol=1e-5)
 
     # --- get results --- #
     t_hat = sol.t       # type: ignore
     b_hat = sol.y[0]    # type: ignore
     c_hat = sol.y[1]    # type: ignore
-    mol_out_hat = sol.y[2]    # type: ignore
+    c_s_hat = sol.y[2] #     type: ignore
+    mol_out_hat1 = sol.y[3]    # type: ignore
+    mol_out_hat2 = sol.y[4]  # type: ignore
 
     # calculate c_s analytically (repeat from ODE)
     c_s_vals = []
@@ -68,7 +78,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
         c_s_vals.append(c_s_val)
 
-    c_s_hat = np.array(c_s_vals)
+    #c_s_hat = np.array(c_s_vals)
 
     #c_s_hat = sol.y[3]  # type: ignore
 
@@ -78,12 +88,18 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     tau = V / Q_in              # residence time of molecules [s]
 
+    # check if targets reached
+    c_eff = c_in * params.fill_frac
+    b_eq1 = (k_on * c_in * b_m) / (k_on * c_in + k_off)
+    b_eq = (k_on * c_eff * b_m) / (k_on * c_eff + k_off)
+    frac_b_eq = b_eq1 / b_eq
+
     # values with dimensions
     t = t_hat * tau                 # s
-    b = b_hat * b_m              # mol/m^2
+    b = b_hat * b_m * frac_b_eq              # mol/m^2
     c = c_hat * c_in             # mol/m^3
     c_s = c_s_hat * c_in        # mol/m^3
-    mol_out = mol_out_hat * (c_in * V)   # mol
+    mol_out = (mol_out_hat1 + mol_out_hat2) * (c_in * V)   # mol
 
     b_last = b[-1]
 
@@ -108,12 +124,14 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # Damkohler number
     Da = (k_on * b_m) / k_m                 # definition like in Squires
-    Da_2 = k_on * c_in * tau                # alternative definition
+    Da_2 = (k_on * c_in + k_off) * tau                # alternative definition
     Da_t = (k_on * (b_m - b)) / k_m         # time dependent definition
 
     # results
     mol_capt = b * S                          # captured molecules (array) [mol]
-    mol_bulk = c * V
+    mol_c = c * V
+    mol_cs = c_s * V
+    mol_bulk = (c + c_s) * V
 
     # end values
     mol_bulk_end = c[-1] * V
@@ -124,9 +142,8 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     loss_perc = 100 * (mol_out[-1] / mol_injected[-1])     # percentage lost at end
     capt_perc = 100 * (mol_capt[-1] / mol_injected[-1])  # percentage captured
 
-    # check if targets reached
-    b_eq = (k_on * c_in * b_m) / (k_on * c_in + k_off)
-    mol_eq = b_eq * S
+
+    mol_eq = b_eq1 * S
     eq_target = 0.95
     capt_target = 0.95
 
@@ -157,7 +174,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # Compute relative mass balance error (abs(x-y) / y)
     mol_bound = b * S  # bound molecules [mol]
-    mol_total = mol_bound + mol_bulk + mol_out  # molecules in system [mol]
+    mol_total = mol_bound / frac_b_eq + mol_bulk + mol_out  # molecules in system [mol]
 
     mass_error = np.zeros_like(t)
     nonzero_mask = mol_injected > 0     # avoid division by zero
@@ -192,8 +209,8 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         print(f"Bulk concentration [mol/L] : {mol_bulk_conc_end:.3e}")
 
         print("--- equilbirium ---")
-        print(f"Bound equilibrium [mol] [%] : {mol_eq:.3e}")
-        print(f"Bound equilibrium [M] [%] : {mol_eq/S:.3e}")
+        print(f"Bound equilibrium [mol] : {mol_eq:.3e}")
+        print(f"Bound equilibrium [mol/m2] : {mol_eq/S:.3e}")
         print("Reached equilbirium: ", reached_eq)
         print(f"Time to equilibrium [s] : {time_eq:.2f}")
 
@@ -209,12 +226,16 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "k_on": k_on,
         "k_off": k_off,
         "c_hat": c_hat,
+        "c_s_hat": c_s_hat,
         "b_m": b_m,
         "c_in": c_in,
+        "c_eff": c_eff,
         "b_eq": b_eq,
+        "b_eq1": b_eq1,
         "c_s": c_s,
         "Pe_H": Pe_H,
         "Pe_s": Pe_s,
+        "Q_in": Q_in,
         "Lambda": Lambda,
         "F": F,
         "k_m": k_m,

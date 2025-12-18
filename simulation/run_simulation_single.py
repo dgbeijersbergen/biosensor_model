@@ -1,15 +1,21 @@
-from biosensor.parameters.parameters import params
+#from biosensor.parameters.parameters import params
+#from biosensor.parameters.parameters_Madaboosi2015 import params
+from biosensor.parameters.parameters_QCM import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_single import *
 from biosensor.utils.save_results import save_simulation_results
 from biosensor.plots.plot_results_other import *
 import pandas as pd
 import os
+from datetime import datetime
+
 
 # simulation
-print_results = False
+print_results = True
 plot_results = True
 export_data = False
+
+startTime = datetime.now()
 
 # SI units
 Q_conversion_factor = (1/60) * 10 ** (-9)
@@ -28,6 +34,7 @@ df = pd.DataFrame(results)
 
 t_pulse = df["t_pulse_hat"].values[0] * df["tau"].values[0]
 
+print(datetime.now() - startTime)   # 0.24 seconds
 
 
 # export data
@@ -55,7 +62,7 @@ if plot_results == True:
     # plot time series of mol values
     plot_time_series(df,t_pulse)
 
-    #plot_cs_time(df,t_pulse)
+    plot_cs_time(df,t_pulse)
 
     # plot time series of dimensionless values
     plot_dimensionless(df, t_pulse)

@@ -14,14 +14,20 @@ def plot_time_series(df, t_pulse=None, save_path=None):
     t = df["t"]
     b = df["b"]
     c = df["c"]
+    cs = df["c_s"]
     mol_injected = df["mol_injected"]
     mol_out = df["mol_out"]
+    b_eq = df["b_eq"].values[0]
+    b_eq1 = df["b_eq1"].values[0]
     S = df["S"]
     V = df["V"]
+    frac = b_eq1 / b_eq
+    b = df["b"]
 
     # Compute moles in each compartment
     mol_bound = b * S                           # bound molecules [mol]
-    mol_bulk = c * V                            # free bulk molecules [mol]
+    # mol_bound = b  # bound molecules [mol]
+    mol_bulk = (c + cs) * V                            # free bulk molecules [mol]
     mol_total = mol_bound + mol_bulk + mol_out  # molecules in system [mol]
 
     # Compute relative mass balance error
@@ -40,10 +46,11 @@ def plot_time_series(df, t_pulse=None, save_path=None):
     #ax1.plot(t, c_s, label='interface c')
     ax1.set_xlabel('Time [s]')
     ax1.set_ylabel('Molecules [mol]')
-    ax1.set_title("Biosensor kinetics")
+    # ax1.set_title("Biosensor kinetics")
     ax1.grid(True, linestyle='--', linewidth=0.5)
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
+    ax1.axhline(b_eq1 * S[0], color='gray', ls='--', label='Equilibrium',linewidth=2)
 
     # Annotations
     if t_pulse:
@@ -51,7 +58,7 @@ def plot_time_series(df, t_pulse=None, save_path=None):
 
 
     # Combine legends
-    ax1.legend(frameon=True, loc='best')
+    # ax1.legend(frameon=True, loc='best')
 
     plt.tight_layout()
 
@@ -64,6 +71,13 @@ def plot_time_series(df, t_pulse=None, save_path=None):
     else:
         plt.show()
 
+    tau_binding = df["k_on"] * df["c_in"] + df["k_off"]
+    tau_transport = df["Q_in"] / df["V"]
+    print("tau_binding:")
+    print(tau_binding[0])
+    print("tau_transport:")
+    print(tau_transport[0])
+
 def plot_dimensionless(df, t_pulse=None, save_path=None):
     # Unpack result variables
     t = df["t"] / df["tau"]
@@ -73,19 +87,23 @@ def plot_dimensionless(df, t_pulse=None, save_path=None):
     b = df["b"]
     b_hat = df["b_hat"]
     b_eq = df["b_eq"].values[0]
+    b_eq1 = df["b_eq1"].values[0]
     b_m = df["b_m"].values[0]
     c_hat = df["c_hat"]
+    c_s_hat = df["c_s_hat"]
     t_pulse_hat = t_pulse / df["tau"].values[0]
+    frac = b_eq1 / b_eq
 
     # Compute moles in each compartment
     mol_bound = b * S
 
     # Plot
-    plt.plot(t, b_hat, label=r'Bound $\hat{b}$', color="xkcd:grass green",linewidth=2.5)
+    plt.plot(t, b_hat , label=r'Bound $\hat{b}$', color="xkcd:grass green",linewidth=2.5)
     plt.axhline(b_eq / b_m, ls='--', label=r'Equilibrium $\hat{b_{eq}}$', color="xkcd:grass green",linewidth=2)
 
 
     plt.plot(t, c_hat, label=r'Bulk $\hat{c}$', color="xkcd:cerulean",linewidth=2.5)
+    plt.plot(t, c_s_hat, label=r'Bulk $\hat{c_s}$', color="xkcd:violet", linewidth=2.5)
 
     # Annotations
     if t_pulse:
@@ -220,14 +238,20 @@ def plot_Damkohler_time(df, save_path=None):
 
 def plot_cs_time(df, t_pulse, save_path=None):
     t = df["t"].values
-    c_s = df["c_s"].values - df["c"]
+    c_s = df["c_s"].values
+    c = df["c"].values
+    c_in = df["c_in"]
 
-    plt.plot(t, c_s)
+    plt.plot(t, c_s, label=r'Bulk $\hat{c_s}$', color="xkcd:violet", linewidth=2.5)
+    plt.plot(t, c, label=r'Bulk $\hat{c}$', color="xkcd:cerulean",linewidth=2.5)
     plt.ylabel('Delta c [M]')
     plt.xlabel('Time')
     plt.grid(True)
 
     plt.tight_layout()
+    plt.legend(frameon=True, loc='best')
+
+    plt.axhline(c_in[1], color='k', ls='--', label='Input concentration')
 
     if t_pulse:
         plt.axvline(t_pulse, color='k', ls='--', label='Injection end')
