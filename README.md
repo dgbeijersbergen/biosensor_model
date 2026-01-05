@@ -31,13 +31,14 @@ Instructions to run: (batch simulation)
 
 biosensor/
 > model/ 
-> > biosensor_model.py              # defines the ODE system
-> > calculate_Sherwood.py           # obtains Sherwood number and mass transfer coefficient
-- - simulate_ODE.py                 # runs simulations and setup for solver
-- parameters/
-- - parameters.py           
-- - parameters_madaboosi2015 
-- - parameters_QCM.py         
+> biosensor_model.py              # defines the ODE system
+> calculate_Sherwood.py           # obtains Sherwood number and mass transfer coefficient 
+> simulate_ODE.py                 # runs simulations and setup for solver 
+
+parameters/
+> parameters.py           
+> parameters_madaboosi2015 
+> parameters_QCM.py         
 - plots/
 - - plot_results_batch.py         
 - - plot_results_characterize.py  
