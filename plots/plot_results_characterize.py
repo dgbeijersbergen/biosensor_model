@@ -384,7 +384,7 @@ from scipy.interpolate import SmoothBivariateSpline
 from scipy.ndimage import gaussian_filter
 import matplotlib.tri as tri
 
-def plot_site_occupancy_interp(df, params, grid_size=25, save_path=None):
+def plot_site_occupancy_interp(df, params, grid_size, save_path=None, save_contour_csv=None):
     fig, ax = plt.subplots(figsize=(7, 6))
 
     # Keep only valid numeric rows
@@ -394,7 +394,7 @@ def plot_site_occupancy_interp(df, params, grid_size=25, save_path=None):
     x = valid["Q_in"].values * 1e9 * 60  # Flow rate [uL/min]
     y = valid["V_in"].values * 1e9  # Volume [uL]
     # z = 100 * valid["b_last"].values / params.b_m  # Occupancy rate [%]
-    z = 100 * valid["b_last"].values / df["b_eq"]  # Ratio   to equilibrium [%]
+    z = 100 * valid["b_last"].values / df["b_eq1"]  # Ratio   to equilibrium [%]
 
     # Create log-spaced interpolation grid
     xi = np.logspace(np.log10(x.min()), np.log10(x.max()), grid_size)
@@ -445,7 +445,53 @@ def plot_site_occupancy_interp(df, params, grid_size=25, save_path=None):
 
 
     triang = tri.Triangulation(x, y)
-    contours = ax.tricontour(triang, z, levels=[95], colors='black', linewidths=2)
+    contours = ax.tricontour(triang, z, levels=[95], colors="black", linewidths=2)
+
+    # Extract vertices
+    contour_vertices = []
+
+    for seg_group in contours.allsegs:  # allsegs is a list of lists: one per level
+        for seg in seg_group:  # each seg is an (N,2) array of vertices
+            contour_vertices.append(seg)
+
+    # Combine into single array
+    contour_vertices = np.vstack(contour_vertices)
+
+    x_c = contour_vertices[:, 0]
+    y_c = contour_vertices[:, 1]
+
+
+    idx = np.argsort(x_c)
+    x_c, y_c = x_c[idx], y_c[idx]
+
+    # Target x-values where contour is sampled
+    k = 20
+    Q_in_uL_min = np.logspace(-1, 3, k)
+
+    all_contour_samples = []
+
+
+    # Interpolate at requested Q_in values
+    mask = (Q_in_uL_min >= x_c.min()) & (Q_in_uL_min <= x_c.max())
+
+    V_in_uL = np.full_like(Q_in_uL_min, np.nan, dtype=float)
+    V_in_uL[mask] = np.interp(Q_in_uL_min[mask], x_c, y_c)
+
+    # Store results
+    df_sample = pd.DataFrame({
+        "Q_in_uL_min": Q_in_uL_min,
+        "V_in_uL": V_in_uL
+    })
+
+    all_contour_samples.append(df_sample)
+
+    # Save contour CSV if requested
+    if save_contour_csv is not None:
+        save_dir = os.path.dirname(save_contour_csv)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        df_sample.to_csv(save_contour_csv, index=False)
+
     #ax.clabel(contours, fmt="95%%", fontsize=10)
     manual_positions = [(0.1,20)]  # Example positions
     #ax.clabel(contours, fmt='%1.0f', inline=False, fontsize=12)
@@ -459,18 +505,22 @@ def plot_site_occupancy_interp(df, params, grid_size=25, save_path=None):
     ax.set_yscale("log")
     ax.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
     ax.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
+    plt.xlim(1e-1, 4e2)  # set x-axis limits
 
     # Labels and title
-    ax.set_xlabel("Flow rate [uL/min]")
-    ax.set_ylabel("Sample volume [uL]")
+
+    ax.set_xlabel("Flow rate [µL/min]")
+    ax.set_ylabel("Sample volume [µL]")
+
     #ax.set_title("Capture percentage (interpolated, griddata)")
 
     plt.tight_layout()
 
     if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Plot saved to {save_path}")
+        save_dir = os.path.dirname(save_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        plt.savefig(save_path, format="svg", bbox_inches="tight")
         plt.close()
     else:
         plt.show()
@@ -546,6 +596,7 @@ def plot_occupancy_multi_contours(dfs, params_list=None, labels=None, c2_index=1
         # 95% contour for all datasets
         triang = tri.Triangulation(x, y)
         contours = ax.tricontour(triang, z, levels=[95], colors='black', linewidths=2)
+
 
         # Scatter the simulation points
         #ax.scatter(x, y, c="k", s=10, alpha=0.3)
@@ -672,363 +723,3 @@ def plot_capture_vs_peH_lambda(df, save_path=None):
     else:
         plt.show()
 
-def plot_varying_Q(df, params):
-    fig, ax1 = plt.subplots(figsize=(7, 6))
-
-    # Keep only valid numeric rows
-    valid = df[["time_eq","Q_in", "V_in", "b_last"]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    # Convert units
-    x = valid["Q_in"].values * 1e9 * 60  # Flow rate [uL/min]
-
-    y = valid["time_eq"].values     # Eq. time
-    yy = valid["Q_in"].values * valid["time_eq"].values * 1e9  # Volume [uL]
-
-    # ---------------- Left axis: Volume (black) ----------------
-    ax1.plot(x, yy, marker='s', color='black', label="Volume")
-    ax1.set_xlabel("Flow rate [µL/min]")
-    ax1.set_ylabel("Volume [µL]", color='black')
-    ax1.tick_params(axis='y', labelcolor='black')
-
-    # ---------------- Right axis: Equilibration time (blue) ----------------
-    ax2 = ax1.twinx()
-    ax2.plot(x, y, marker='o', color='blue', label="Equilibration time")
-    ax2.set_ylabel("Equilibration time [s]", color='blue')
-    ax2.tick_params(axis='y', labelcolor='black')
-
-    ax1.set_xlim(1e-1, 1e2)  # x-axis limits (example)
-    ax1.set_ylim(5e0, 1e2)
-
-    ax1.set_xscale('log')  # log scale on x-axis
-    ax1.set_yscale('log')
-    ax2.set_yscale('log')
-    ax1.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    ax1.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-
-    # Make right axis tick positions match left axis
-    ax2.set_yticks(ax1.get_yticks())
-    ax2.set_ylim(ax1.get_ylim())
-
-    # DISPLACE RIGHT AXIS BY ONE DECADE
-    left_min, left_max = ax1.get_ylim()
-
-    # Add ONE DECADE → multiply limits by 10
-    ax2.set_ylim(left_min * 10, left_max * 10)
-
-
-
-    # Shade region left of x = 20
-    ax1.axvspan(ax1.get_xlim()[0], 20, color='gray', alpha=0.2)
-    ax1.axvline(20, color='gray', linestyle='-')
-
-    # Text
-    ax1.text(
-        0.25, 0.85,  # (x, y) as a fraction of the axis (0–1)
-        "Full collection",
-        transform=ax1.transAxes,
-        fontsize=14,
-        color="black",
-    )
-
-    # Optional: cleaner layout
-    fig.tight_layout()
-    plt.show()
-
-
-def plot_varying_Q_collection(df, params):
-    fig, ax1 = plt.subplots(figsize=(7, 6))
-
-    # Keep only valid numeric rows
-    valid = df[["full_collection","time_eq", "Q_in", "V_in", "b_last"]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    # Make sure full_collection matches the filtered df
-    full_collection = valid["full_collection"]
-
-    full_collection = full_collection[valid.index]
-
-    # Convert units
-    x = valid["Q_in"].values * 1e9 * 60  # Flow rate [uL/min]
-    y = valid["time_eq"].values  # Eq. time
-    yy = valid["Q_in"].values * valid["time_eq"].values * 1e9  # Volume [uL]
-
-    # ---------------- Left axis: Volume (black) ----------------
-    ax1.plot(x, yy, marker='s', color='black', label="Volume")
-    ax1.set_xlabel("Flow rate [µL/min]")
-    ax1.set_ylabel("Volume [µL]", color='black')
-    ax1.tick_params(axis='y', labelcolor='black')
-
-    # ---------------- Right axis: Equilibration time (blue) ----------------
-    ax2 = ax1.twinx()
-    ax2.plot(x, y, color='blue', linewidth=2)
-
-    # Plot points individually depending on full_collection
-    for xi, yi, filled in zip(x, y, full_collection):
-        if filled:
-            ax2.plot(xi, yi, marker='o', color='blue', markersize=8, markerfacecolor='blue', markeredgecolor='blue')
-        else:
-            ax2.plot(xi, yi, marker='o', color='blue', markersize=8, markerfacecolor='none', markeredgecolor='blue')
-
-    ax2.set_ylabel("Equilibration time [s]", color='blue')
-    ax2.tick_params(axis='y', labelcolor='black')
-
-    ax1.set_xlim(1e-1, 1e3)
-    ax1.set_ylim(5e1, 1e4)
-    ax1.set_xscale('log')
-    ax1.set_yscale('log')
-    ax2.set_yscale('log')
-    ax1.grid(True, which="major", ls="-", linewidth=1, alpha=0.8)
-    ax1.grid(True, which="minor", ls="-", linewidth=1, alpha=0.2)
-
-    # Make right axis tick positions match left axis
-    ax2.set_yticks(ax1.get_yticks())
-    ax2.set_ylim(ax1.get_ylim())
-
-    # DISPLACE RIGHT AXIS BY ONE DECADE
-    left_min, left_max = ax1.get_ylim()
-    ax2.set_ylim(left_min * 10, left_max * 10)
-
-    # Shade region left of x = 20
-    ax1.axvspan(ax1.get_xlim()[0], 0.3, color='gray', alpha=0.2)
-    ax1.axvline(0.3, color='gray', linestyle='-')
-
-    # Text
-    ax1.text(
-        0.10, 0.85,
-        "Full collection",
-        transform=ax1.transAxes,
-        fontsize=14,
-        color="black",
-    )
-
-    fig.tight_layout()
-    plt.show()
-
-def plot_varying_Q_varying_c(df, params):
-    fig, ax1 = plt.subplots(figsize=(7, 6))
-
-    # Filter valid rows
-    valid = df[[
-        "full_collection", "time_eq", "Q_in", "V_in",
-        "b_last", "c_in"
-    ]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    unique_c = sorted(valid["c_in"].unique())
-    N = len(unique_c)
-
-    # Create grayscale colors (avoid pure black/white extremes)
-    grayscale_colors = [
-        str(0.1 + 0.5 * (N - 1 - i) / max(N - 1, 1)) for i in range(N)
-    ]
-    # These are strings like '0.2', '0.4', which matplotlib interprets as grays
-
-    ax2 = ax1.twinx()
-
-    # Loop over concentration groups
-    for i, cval in enumerate(unique_c):
-
-        sub = valid[valid["c_in"] == cval]
-
-        # Unit conversions
-        x = sub["Q_in"].values * 1e9 * 60        # flow [uL/min]
-        y = sub["time_eq"].values               # t_eq [s]
-        yy = (sub["Q_in"] * sub["time_eq"]).values * 1e9  # Volume [uL]
-
-        # Sort each c-group for smooth lines
-        idx = np.argsort(x)
-        x_sorted = x[idx]
-        y_sorted = y[idx]
-        yy_sorted = yy[idx]
-
-        color = grayscale_colors[i]
-
-        # ------- LEFT axis: Volume (solid grayscale) -------
-        ax1.plot(
-            x_sorted, yy_sorted,
-            marker="s", linewidth=2,
-            color=color,
-            linestyle="-",                       # SOLID
-        )
-
-        # ------- RIGHT axis: t_eq (dotted grayscale) -------
-        ax2.plot(
-            x_sorted, y_sorted,
-            marker=None, linewidth=2,
-            color=color,
-            linestyle=":",                       # DOTTED
-        )
-
-        # Markers (full vs empty)
-        for xi, yi, filled in zip(x, y, sub["full_collection"]):
-            if filled:
-                ax2.plot(
-                    xi, yi, marker='o', markersize=8,
-                    markerfacecolor=color,
-                    markeredgecolor=color
-                )
-            else:
-                ax2.plot(
-                    xi, yi, marker='o', markersize=8,
-                    markerfacecolor='none',
-                    markeredgecolor=color
-                )
-
-    # --- Labels ---
-    ax1.set_xlabel("Flow rate [µL/min]")
-    ax1.set_ylabel("Volume [µL]", color='black')
-    ax2.set_ylabel("Equilibration time [s]", color='black')
-
-    # --- Log scales ---
-    ax1.set_xscale("log");  ax1.set_yscale("log")
-    ax2.set_yscale("log")
-
-    # --- Limits ---
-    ax1.set_xlim(1e-1, 5e3)
-    ax1.set_ylim(1e-1, 5e4)
-    ax2.set_ylim(1e1, 5e6)
-    #ax2.set_yticks(ax1.get_yticks())
-
-    # --- Grid ---
-    ax1.grid(True, which="major", ls="-", alpha=0.8)
-    ax1.grid(True, which="minor", ls="-", alpha=0.2)
-
-    # --- Shading ---
-    ax1.axvspan(ax1.get_xlim()[0], 20, color='gray', alpha=0.2)
-    ax1.axvline(20, color='gray')
-
-    # --- Text ---
-    ax1.text(
-        0.15, 0.90, "Full collection",
-        transform=ax1.transAxes, fontsize=14
-    )
-
-    fig.tight_layout()
-    plt.show()
-
-def plot_varying_Q_varying_c_Da(df):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    # Filter valid rows
-    valid = df[[
-        "full_collection", "time_eq", "Q_in", "Da_2", "c_in"
-    ]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    unique_c = sorted(valid["c_in"].unique())
-    N = len(unique_c)
-
-    # Grayscale colors
-    grayscale_colors = [
-        str(0.1 + 0.5 * (N - 1 - i) / max(N - 1, 1)) for i in range(N)
-    ]
-
-    # Loop over concentration groups
-    for i, cval in enumerate(unique_c):
-
-        sub = valid[valid["c_in"] == cval]
-
-        # Unit conversions
-        x = sub["Q_in"].values * 1e9 * 60   # µL/min
-        Da = sub["Da_2"].values               # Da values
-
-        # Sort for clean lines
-        idx = np.argsort(x)
-        x_sorted = x[idx]
-        Da_sorted = Da[idx]     # ✔ correct
-
-        color = grayscale_colors[i]
-
-        # ---- Da line ----
-        ax.plot(
-            x_sorted, Da_sorted,
-            marker="s",
-            linewidth=2,
-            color=color,
-            linestyle="-",
-            label=f"c = {cval}"
-        )
-
-        # ---- full / empty markers ----
-        for xi, yi, filled in zip(x, Da, sub["full_collection"]):
-            if filled:
-                ax.plot(
-                    xi, yi, marker='o', markersize=8,
-                    markerfacecolor=color, markeredgecolor=color
-                )
-            else:
-                ax.plot(
-                    xi, yi, marker='o', markersize=8,
-                    markerfacecolor='none', markeredgecolor=color
-                )
-
-    # Labels and scales
-    ax.set_xlabel("Flow rate [µL/min]")
-    ax.set_ylabel("Damköhler number (Da)")
-
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-
-    ax.set_xlim(1e-1, 1e3)
-
-    ax.grid(True, which="major", ls="-", alpha=0.8)
-    ax.grid(True, which="minor", ls="-", alpha=0.2)
-
-    ax.legend(title="Concentration")
-
-    plt.tight_layout()
-    plt.show()
-
-def plot_damkohler_varying_c(df):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    c_labels = ["1 nM", "100 nM", r"10 $\mu$M"]
-    # keep only required columns
-    valid = df[[
-        "Da_2", "Q_in", "c_in"
-    ]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    unique_c = sorted(valid["c_in"].unique())
-    N = len(unique_c)
-
-    # grayscale colors
-    grayscale_colors = [
-        str(0.1 + 0.6 * i / max(N - 1, 1)) for i in range(N)
-    ]
-
-    grayscale_colors = [
-        str(0.1 + 0.5 * (N - 1 - i) / max(N - 1, 1)) for i in range(N)
-    ]
-
-    for i, cval in enumerate(unique_c):
-        sub = valid[valid["c_in"] == cval]
-
-        x = sub["Q_in"].values * 1e9 * 60   # µL/min
-        y = sub["Da_2"].values
-
-        # sort for connected lines
-        idx = np.argsort(x)
-        x = x[idx]
-        y = y[idx]
-
-        ax.plot(
-            x, y,
-            color=grayscale_colors[i],
-            linewidth=2,
-            marker="o",
-            markersize=6,
-            label=c_labels[i]
-        )
-
-    # axes, scales, styling
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_ylim(1e-3, 1e3)
-
-    ax.grid(True, which="major", ls="-", alpha=0.8)
-    ax.grid(True, which="minor", ls="-", alpha=0.2)
-
-    ax.set_xlabel("Flow rate [µL/min]")
-    ax.set_ylabel("Damköhler number [ ]")
-    # ax.set_title("Damköhler number vs flow for varying concentration")
-
-    ax.legend(title="Concentration", loc="best")
-    plt.tight_layout()
-    plt.show()

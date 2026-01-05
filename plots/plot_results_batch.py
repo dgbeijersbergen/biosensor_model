@@ -1183,7 +1183,7 @@ def t_eq_new(df, save_path=None):
         alpha=0.9
     )
     cbar = plt.colorbar(contour, ax=ax)
-    cbar.set_label("Equilibrium time [s]")
+    cbar.set_label("Equilibrium time [s] (interpolated)")
     # -------------------------------------------------
 
     # ---------------- CONTOUR LINES ----------------

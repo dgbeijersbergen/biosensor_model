@@ -33,10 +33,7 @@ params = ModelParams(
     H_c = 20e-6,    # channel height [m]
 
     # molecular parameters
-    D = 8.5e-11,      # diffusion coefficient EpCAM [m^2/s]
-    #D = 6.54e-10,      # diffusion coefficient MCH [m^2/s]
-    #D = 0.74e-10,      # diffusion coefficient ssDNA 52nt [m^2/s]
-    #D = 8.15e-11,      # diffusion coefficient ssDNA 58nt [m^2/s]
+    D = 8.5e-11,      # diffusion coefficient PSA [m^2/s]
 
     # sensor parameters
     k_on = 2.54e5,        # association constant [mol m^-3 s^-1]
@@ -47,10 +44,10 @@ params = ModelParams(
 
     # input parameters
     c_0 = 0,        # initial bulk concentration [mol/m^3]
-    c_in = 38.3450e-9,      # input concentration [M] (1 M = 1e3 mol/m^3)
+    c_in = 0.383450e-9,      # input concentration [M] (1 M = 1e3 mol/m^3)
     #c_in = 50e-15,      # input concentration [mol/L] (1 mol/m^3 = 1 mM)
-    V_in = 25e-9,      # volume input [m^3]   (1uL = 1e-9 m^3)
-    Q_in = 0.5,     # volume flow rate [uL/min]
+    V_in = 5e-9,      # volume input [m^3]   (1uL = 1e-9 m^3)
+    Q_in = .5,     # volume flow rate [uL/min]
     flow_off = True,  # determines if flow turns off after injection
     char_length = 'H' # characteristic length to calculate k_m [H, H_2]
 

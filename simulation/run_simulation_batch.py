@@ -2,7 +2,6 @@
 from biosensor.parameters.parameters_QCM import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_batch import *
-from biosensor.model.simulate_sensivitity import simulate_with_sensitivity
 import numpy as np
 import pandas as pd
 import itertools

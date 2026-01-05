@@ -33,10 +33,7 @@ params = ModelParams(
     H_c = 50e-6,    # channel height [m]
 
     # molecular parameters
-    D = 1e-10,      # diffusion coefficient EpCAM [m^2/s]
-    #D = 6.54e-10,      # diffusion coefficient MCH [m^2/s]
-    #D = 0.74e-10,      # diffusion coefficient ssDNA 52nt [m^2/s]
-    #D = 8.15e-11,      # diffusion coefficient ssDNA 58nt [m^2/s]
+    D = 1e-10,      # diffusion coefficient
 
     # sensor parameters
     k_on = 1e5,        # association constant [mol m^-3 s^-1]

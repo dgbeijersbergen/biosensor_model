@@ -69,8 +69,29 @@ def compute_k_m(Q_in,params):
     if F > Pe_H:
         F = Pe_H
 
+    b_eq = params.b_m * (params.k_on * params.c_in) / (params.k_on * params.c_in + params.k_off)
 
-    # F = Pe_H # full collection (only for plotting in figure 7! Non realistic version)
+    if Pe_H > 0:
+        fraction = F / Pe_H      # equivalent to height
+        # print(fraction)
+    else:
+        fraction = 1
+
+    V = params.W_s * params.H_c * params.L_s
+
+    N_sensor = b_eq * L_s * params.W_s    # molecules required to cover surface
+
+    N_depletion = fraction * V * params.c_in    # molecules available in depletion layer
+
+    # determines if model is valid (epsilon in main text)
+    if N_depletion * 1e1 < N_sensor:  # condition
+        #print("Valid")
+        True
+    else:
+        F = Pe_H
+        #print("Not valid")
+
+    # F = Pe_H # full collection (only for plotting in figure 5! Non realistic version)
 
     # calculate mass transport rate
     if params.char_length == 'H':
@@ -80,4 +101,4 @@ def compute_k_m(Q_in,params):
     else:
         raise ValueError("Unkown characteristic length (char_length)")
 
-    return k_m
+    return k_m, F

@@ -25,7 +25,7 @@ def plot_time_series(df, t_pulse=None, save_path=None):
     b = df["b"]
 
     # Compute moles in each compartment
-    mol_bound = b * S                           # bound molecules [mol]
+    mol_bound = b * S                          # bound molecules [mol]
     # mol_bound = b  # bound molecules [mol]
     mol_bulk = (c + cs) * V                            # free bulk molecules [mol]
     mol_total = mol_bound + mol_bulk + mol_out  # molecules in system [mol]
@@ -41,7 +41,7 @@ def plot_time_series(df, t_pulse=None, save_path=None):
     # Left axis: molecules
     ax1.plot(t, mol_injected, label='Injected', color="xkcd:black", linewidth=2.5)
     ax1.plot(t, mol_bound, label='Bound', color="xkcd:grass green",linewidth=2.5)
-    ax1.plot(t, mol_bulk, label='Bulk', color="xkcd:cerulean",linewidth=2.5)
+    #ax1.plot(t, mol_bulk, label='Bulk', color="xkcd:cerulean",linewidth=2.5)
     ax1.plot(t, mol_out, label='Lost', color="xkcd:red",linewidth=2.5)
     #ax1.plot(t, c_s, label='interface c')
     ax1.set_xlabel('Time [s]')
@@ -58,14 +58,14 @@ def plot_time_series(df, t_pulse=None, save_path=None):
 
 
     # Combine legends
-    # ax1.legend(frameon=True, loc='best')
+    #ax1.legend(frameon=True, loc='best')
 
     plt.tight_layout()
 
     # Save figure if specified
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
+        plt.savefig(save_path, format="svg", bbox_inches="tight")
         print(f"Plot saved to {save_path}")
         plt.close()
     else:

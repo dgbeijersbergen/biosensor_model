@@ -140,14 +140,14 @@ sc = plt.scatter(
 
 cbar = plt.colorbar(sc)
 cbar.ax.set_position([0.83, 0.1, 0.03, 0.8])  # [left, bottom, width, height] in figure coords
-cbar.set_label("Percentage of full collection (%)")
+cbar.set_label("Percentage of complete delivery (%)")
 
 
 
 plt.xlabel('Pe$_H$',fontsize='large')
 plt.ylabel('Dimensionless flux $F$')
-plt.title('Dimensionless flux ')
-plt.legend(["Full collection","Ackerberg limit","Newman limit","Combined"])
+# plt.title('Dimensionless flux ')
+plt.legend(["Complete delivery","Ackerberg limit","Newman limit","Interpolated"])
 plt.grid(True, which="major", ls="-",linewidth=1,alpha=0.8)
 plt.grid(True, which="minor", ls="-",linewidth=1,alpha=0.2)
 plt.xlim(1e-2, 1e4)  # set x-axis limits
@@ -159,7 +159,7 @@ plt.text(1.15e4, 3e1, r"$\lambda = 1$", fontsize=8)
 plt.text(1.15e4, 1.3e2, r"$\lambda = 10$", fontsize=8)
 plt.text(1.15e4, 7e2, r"$\lambda = 100$", fontsize=8)
 
-plt.savefig('flux.png', format='png', dpi=1200)
+plt.savefig('flux.svg', format='svg', dpi=300)
 plt.show()
 
 

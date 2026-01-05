@@ -48,9 +48,9 @@ params = ModelParams(
     # input parameters
     c_0 = 0,        # initial bulk concentration [mol/m^3]
     #c_in = 100e-6,      # input concentration [mol/m^3] (1 M = 1e3 mol/m^3)
-    c_in = 100e-9,      # input concentration [mol/L] (1 mol/m^3 = 1 mM)
-    V_in = 1000*1e-9,      # volume input [m^3]   (1uL = 1e-9 m^3)
-    Q_in = 100,     # volume flow rate [uL/min]
+    c_in = 1e0*1e-9,      # input concentration [mol/L] (1 mol/m^3 = 1 mM)
+    V_in = 50*1e-9,      # volume input [m^3]   (1uL = 1e-9 m^3)
+    Q_in = 40,     # volume flow rate [uL/min]
     flow_off = True,  # determines if flow turns off after injection
     char_length = 'H' # characteristic length to calculate k_m [H, H_2]
 

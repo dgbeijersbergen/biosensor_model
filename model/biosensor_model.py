@@ -1,100 +1,83 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
-from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
+from biosensor.model.calculate_Sherwood import *
 
-# Ordinary differential equation (ODE) for two-compartment model, dimensionless
-def ode_binding_hat(t_hat,y,params):
+def ode_binding_hat(t_hat, y, params):
     b_hat, c_hat, c_s_hat, N_out_hat1, N_out_hat2 = y
 
-    # unpack params
+    # --- parameters ---
     W_c, L_c, H_c = params.W_c, params.L_c, params.H_c
-    D = params.D
-    k_on, k_off, b_m, L_s, W_s = params.k_on, params.k_off, params.b_m, params.L_s, params.W_s
-    c_0, c_in, V_in, Q_in, flow_off = params.c_0, params.c_in, params.V_in, params.Q_in, params.flow_off
+    k_on, k_off = params.k_on, params.k_off
+    b_m, L_s, W_s = params.b_m, params.L_s, params.W_s
+    c_in, V_in, Q_in = params.c_in, params.V_in, params.Q_in
+    flow_off = params.flow_off
 
-    # system size
-    S = L_s * W_s           # sensor area [m^2]
-    V = W_c * L_c * H_c     # channel volume [m^3]
+    # --- geometry ---
+    S = L_s * W_s
+    V = W_c * L_c * H_c
+    params.V = V
 
-    # compute dimensionless values
-    tau = V / Q_in                      # residence time [s]
-    gamma = (S * b_m) / (V * c_in)      # ratio of surface capacity to bulk content [ ]
-    t_pulse_hat = V_in / V              # input time dimensionless
+    # --- dimensionless groups ---
+    tau = V / Q_in
+    gamma = (S * b_m) / (V * c_in)
+    t_pulse_hat = V_in / V
 
-
-    # pulse function to stop flow
-    if t_hat < t_pulse_hat:
+    # --- injection switch ---
+    injecting = (t_hat < t_pulse_hat)
+    if injecting == True:
         H = 1.0
         Q_eff = Q_in
     else:
         H = 0.0
-        Q_eff = 0
+        Q_eff = 0.0
 
-    # obtain k_m value
-    k_m = compute_k_m(Q_eff,params)
+    # --- mass transfer ---
+    k_m, F = compute_k_m(Q_eff, params)
 
-    # non-dimensional interface concentration [ ] (eq.1)
-    # c_s_numerator = (k_m * c_in) + (k_off * b_m * b_hat)
-    # c_s_denom = k_m + k_on * (b_m - (b_m*b_hat))
-    # c_s_hat = (1 / c_in) * (c_s_numerator / c_s_denom)
+    # --- binding kinetics ---
+    db_hat_dt = tau * (
+        k_on * c_in * c_s_hat * (1 - b_hat) - k_off * b_hat
+    )
 
-    # interface concentration
-
-
-    # limit c_s_hat to 1 (physical limit) (don't enforce)
-    #c_s_hat = min(c_s_hat, 1.0)
-
-    # langmuir kinetics (eq. 2)
-
-
-
-    # fill_frac = params.fill_frac
-    # 
-    # V_total = V  # or any reference volume
-    # V_cs = params.fill_frac * V_total
-    # V_c = (1 - params.fill_frac) * V_total
-
-    db_hat_dt = tau * ((k_on * (c_in) * (c_s_hat) * (1 - b_hat)) - (k_off * b_hat))      # fix: (c_s_hat/fill_frac) reasonable? because c_s_hat < c_in
-    #dbhat_dt = tau * ((k_on * c_in * c_s_hat * (1 - b_hat)))
-
-    # compute Langmuir equilibrium fraction for current c_s_hat
+    # enforce saturation
     b_eq_hat = (k_on * c_in) / (k_on * c_in + k_off)
-
-    # limit b_hat to 1 (physical limit)
     if (b_hat >= 1.0 or b_hat > b_eq_hat) and db_hat_dt > 0:
         db_hat_dt = 0.0
 
-    # conservation of mass (eq. 3)
-    gamma = (S * b_m) / (V * c_in) # ratio of bulk bound molecules to bulk molecules
+    # --- reaction flux (dimensionless) ---
+    J_R = tau * (
+        k_on * c_s_hat * b_m * (1 - b_hat)
+        - (k_off * b_m * b_hat) / c_in
+    )
 
+    # --- transport terms ---
+    J_D = tau * (k_m / L_s)
+    J_out = c_hat
+    J_s_out = c_s_hat
 
+    # ===============================
+    # REGIMES
+    # ===============================
 
-    # during injection or flow
-    if t_hat < t_pulse_hat or flow_off == False:
+    if injecting or not flow_off:
+        # flow on (injection or continuous)
+
         dNouthat1_dt = c_hat
         dNouthat2_dt = c_s_hat
 
-        # interface concentration
-        #dcs_hat_dt = tau * ( (k_m * (1 - c_s_hat) / L_s) - ((1 / H_c) * (k_on * c_s_hat * b_m * (1 - b_hat) - (k_off * b_m * b_hat) / c_in) ) - (Q_in / V) * c_s_hat)   # new
-        dcs_hat_dt = tau * ((k_m / L_s) - ((1 / H_c) * (k_on * c_s_hat * b_m * (1 - b_hat) - (k_off * b_m * b_hat) / c_in)) - (Q_in / V) * c_s_hat)  # new
+        dcs_hat_dt = J_D - (1 / H_c) * J_R - J_s_out
+        dc_hat_dt = H - J_D - J_out
 
-        #dcs_hat_dt = (V_cs/Q_in) * (
-        #            (H) - ((1 / H_c) * (k_on * c_s_hat * b_m * (1 - b_hat) - (k_off * b_m * b_hat) / c_in)) - (
-        #                Q_in / V_cs) * c_s_hat)  # new
+    else:
+        # flow off, post injection
 
-        # non-interacting concentration
-        #dchat_dt = H - gamma * dbhat_dt - dNouthat_dt  # old
-        #dc_hat_dt = H - tau * ((k_m * (1 - c_s_hat) / L_s)) - dNouthat1_dt  # new
-        dc_hat_dt = H - tau * ((k_m / L_s)) - dNouthat1_dt  # new
+        dcs_hat_dt = -gamma * db_hat_dt
+        dc_hat_dt = 0.0
+        dNouthat1_dt = 0.0
+        dNouthat2_dt = 0.0
 
-    # after injection and stopped flow
-    elif t_hat >= t_pulse_hat and flow_off == True:
-        dcs_hat_dt = - gamma * db_hat_dt
-        dc_hat_dt = 0
-        dNouthat1_dt = 0
-        dNouthat2_dt = 0
-
-    return [db_hat_dt, dc_hat_dt, dcs_hat_dt, dNouthat1_dt, dNouthat2_dt]
-
-
+    return [
+        db_hat_dt,
+        dc_hat_dt,
+        dcs_hat_dt,
+        dNouthat1_dt,
+        dNouthat2_dt,
+    ]

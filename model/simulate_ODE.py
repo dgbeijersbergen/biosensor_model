@@ -18,7 +18,10 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     y0_hat = [0, params.c_0 / params.c_in, params.c_0 / params.c_in, 0, 0] # b0, c0, c_s_hat,  N0, N0
 
     # fraction of filling possible
-    k_m = compute_k_m(params.Q_in, params)
+    output = compute_k_m(params.Q_in, params)
+    k_m = output[0]
+    F = output[1]
+
     J_in = c_in * Q_in # mol/s
     J_D = W_c * H_c * c_in * k_m
     if k_m > 0 and c_in > 0:
@@ -32,14 +35,24 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # time length of simulation (if undefined: 3x pulse time)
     if max_time == None:
-        t_span_hat = (0, 1.5 * t_pulse_hat)
+        t_span_hat = (0, 3 * t_pulse_hat)
     else:
         max_time_hat = max_time / tau   # non dimensionalized time
         t_span_hat = (0, max_time_hat)  # simulate specified time
 
-    dt_hat = 1e-2  # nondimensional time step (note: just for visualization, solve_ivp defines its own timestep)
-    nt = int(np.ceil((t_span_hat[1] - t_span_hat[0]) / dt_hat)) + 1
+    #if params.c_in > 1e-3:
+    dt_hat = 1 / tau  # nondimensional time step (note: just for visualization, solve_ivp defines its own timestep)
+    #if params.Q_in > (1e2*1e-9/60):
+    #    V_in = 1e4*1e-9
+    #else:
+    #    V_in = 100e-9
+    t_pulse_hat = V_in / V  # nondimensional pulse duration = V_in / V
+    # t_span_hat = (0, 3 * t_pulse_hat)
+    #n_plot = int(np.ceil((t_span_hat[1] - t_span_hat[0]) / dt_hat)) + 1
     n_plot = 50000
+
+    #else:
+    #    n_plot = 50000
     t_eval_hat = np.linspace(t_span_hat[0], t_span_hat[1], n_plot)
 
     # solve biosensor ODE (best result: LSODA)
@@ -54,33 +67,12 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
                     atol=1e-5)
 
     # --- get results --- #
-    t_hat = sol.t       # type: ignore
-    b_hat = sol.y[0]    # type: ignore
-    c_hat = sol.y[1]    # type: ignore
-    c_s_hat = sol.y[2] #     type: ignore
-    mol_out_hat1 = sol.y[3]    # type: ignore
-    mol_out_hat2 = sol.y[4]  # type: ignore
-
-    # calculate c_s analytically (repeat from ODE)
-    c_s_vals = []
-
-    for t_i, b_i, c_i in zip(t_hat,b_hat,c_hat):
-        if t_i >= t_pulse_hat:
-            Q_in_temp = 0
-        else:
-            Q_in_temp = params.Q_in
-
-        k_m = compute_k_m(Q_in_temp, params)
-
-        numerator = (k_m * params.c_in * c_i) + (params.k_off * params.b_m * b_i)
-        denom = k_m + params.k_on * (params.b_m - (params.b_m * b_i))
-        c_s_val = max(numerator / (params.c_in * denom), 0.0)
-
-        c_s_vals.append(c_s_val)
-
-    #c_s_hat = np.array(c_s_vals)
-
-    #c_s_hat = sol.y[3]  # type: ignore
+    t_hat = sol.t           # type: ignore
+    b_hat = sol.y[0]        # type: ignore
+    c_hat = sol.y[1]        # type: ignore
+    c_s_hat = sol.y[2]      # type: ignore
+    mol_out_hat1 = sol.y[3] # type: ignore
+    mol_out_hat2 = sol.y[4] # type: ignore
 
     # System parameters
     V = W_c * L_c * H_c         # channel volume [m^3]
@@ -90,15 +82,15 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # check if targets reached
     c_eff = c_in * params.fill_frac
-    b_eq1 = (k_on * c_in * b_m) / (k_on * c_in + k_off)
-    b_eq = (k_on * c_eff * b_m) / (k_on * c_eff + k_off)
+    b_eq1 = (k_on * c_in * b_m) / (k_on * c_in + k_off)     # 'real' equilbirium
+    b_eq = (k_on * c_eff * b_m) / (k_on * c_eff + k_off)    # simulated equilibrium
     frac_b_eq = b_eq1 / b_eq
 
     # values with dimensions
     t = t_hat * tau                 # s
-    b = b_hat * b_m * frac_b_eq              # mol/m^2
-    c = c_hat * c_in             # mol/m^3
-    c_s = c_s_hat * c_in        # mol/m^3
+    b = b_hat * b_m * frac_b_eq     # mol/m^2 (scaled to real equilibrium)
+    c = c_hat * c_in                # mol/m^3
+    c_s = c_s_hat * c_in            # mol/m^3
     mol_out = (mol_out_hat1 + mol_out_hat2) * (c_in * V)   # mol
 
     b_last = b[-1]
@@ -109,22 +101,25 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     ## -- analysis -- ##
 
     # conservation check (should be near zero)
-    residual = mol_injected - mol_out - b * S - c * V
+    residual = mol_injected - mol_out - b * S - c * V * (1 - params.fill_frac) - c_s * V * params.fill_frac
 
 
     # system characteristics
     Pe_H = Q_in / (D * W_c)                 # Peclet number (channel)
     Lambda = L_s / H_c                      # ratio of sensor length to channel height
     Pe_s = 6 * (Lambda ** 2) * Pe_H         # Peclet number (shear)
-    F = F_combine(Pe_H, Lambda)             # Sherwood number
+    output = compute_k_m(Q_in,params)             # Sherwood number
+    k_m = output[0]
+    F = output[1]
+
     if F > Pe_H:
         F = Pe_H
 
-    k_m = F * (D / (H_c))               # mass transport rate
+    # k_m = F * (D / (H_c))               # mass transport rate
 
     # Damkohler number
     Da = (k_on * b_m) / k_m                 # definition like in Squires
-    Da_2 = (k_on * c_in + k_off) * tau                # alternative definition
+    Da_2 = (k_on * c_in) * tau                # alternative definition
     Da_t = (k_on * (b_m - b)) / k_m         # time dependent definition
 
     # results
@@ -183,6 +178,12 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     error_last = mass_error[-1]
     error_max = max(mass_error)
 
+    # Obtain required volume for eq.
+    if time_eq < t_pulse_hat * tau:
+        V_eq = time_eq * Q_in
+    else:
+        V_eq = V_in
+
     if print_results == True:
         print("Simulation of system")
         print(f"Flow rate [uL/min]:, {Q_in*1e9*60:.2f}")
@@ -195,7 +196,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         print(f"Ratio of sensor length to channel height (lambda) {Lambda:.2f}")
         print(f"Sherwood number: {F:.2f}")
         print(f"Mass transport rate (k_m): {k_m:.3e}")
-        print(f"Damkohler number (Da): {Da:.2e}")
+        print(f"Damkohler number (Da): {Da_2:.2e}")
 
         print("-----------")
 
@@ -213,6 +214,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         print(f"Bound equilibrium [mol/m2] : {mol_eq/S:.3e}")
         print("Reached equilbirium: ", reached_eq)
         print(f"Time to equilibrium [s] : {time_eq:.2f}")
+        print(f"Volume required [uL] : {V_eq*1e9:.2f}")
 
     return {
         "t": t,
@@ -258,6 +260,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "t_pulse_hat": t_pulse_hat,
         "tau": tau,
         "V": V,
+        "V_eq": V_eq,
         "mass_error": mass_error,
         "error_last": error_last,
         "error_max": error_max
