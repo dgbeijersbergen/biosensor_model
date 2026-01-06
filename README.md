@@ -20,8 +20,8 @@ Instructions to run: (single simulation)
 
 Instructions to run: (batch simulation)
 - Change biosensor parameters in parameters > parameters.py.
-- Adjust settings in simulation > run_simulation_characterize.py or run_simulation_optimisation.py or run_simulation_batch.py
+- Adjust settings in desired file (simulation > run_simulation_characterize.py or run_simulation_optimisation.py or run_simulation_batch.py)
 - Make sure correct parameters are imported (e.g., from biosensor.parameters.parameters import params)
-- Run the file run_simulation_single.py
+- Run the desired file
 
 ## Background
