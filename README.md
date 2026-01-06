@@ -1,5 +1,5 @@
 # Biosensor Two-Compartment Model
-Two-compartment model for affinity-based biosensors that includes simplified transport and reaction processes, with a volume limitation.
+Two-compartment model for affinity-based biosensors that includes simplified transport and reaction processes, with a volume limitation. It can be used to provide insights into the performance of a biosensor and for rapid optimisation of biosensor parameters.
 Manuscript available on: https://arxiv.org/abs/2512.21997
 
 ## Author: 
@@ -30,10 +30,10 @@ Instructions to run: (batch simulation)
 ## Repository Structure
 
 biosensor/
-> model/ 
-> biosensor_model.py              # defines the ODE system
-> calculate_Sherwood.py           # obtains Sherwood number and mass transfer coefficient 
-> simulate_ODE.py                 # runs simulations and setup for solver 
+  model/ 
+    biosensor_model.py              # defines the ODE system
+    calculate_Sherwood.py           # obtains Sherwood number and mass transfer coefficient 
+    simulate_ODE.py                 # runs simulations and setup for solver 
 
 parameters/
 > parameters.py           
