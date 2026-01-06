@@ -30,10 +30,10 @@ Instructions to run: (batch simulation)
 ## Repository Structure
 
 biosensor/
-  model/ 
-    biosensor_model.py              # defines the ODE system
-    calculate_Sherwood.py           # obtains Sherwood number and mass transfer coefficient 
-    simulate_ODE.py                 # runs simulations and setup for solver 
+  - model/ 
+    - biosensor_model.py              # defines the ODE system
+    - calculate_Sherwood.py           # obtains Sherwood number and mass transfer coefficient 
+    - simulate_ODE.py                 # runs simulations and setup for solver 
 
 parameters/
 > parameters.py           
