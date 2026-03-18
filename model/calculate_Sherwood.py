@@ -84,14 +84,17 @@ def compute_k_m(Q_in,params):
     N_depletion = fraction * V * params.c_in    # molecules available in depletion layer
 
     # determines if model is valid (epsilon in main text)
-    if N_depletion * 1e1 < N_sensor:  # condition
+        # to do: add Squires eq. 21 - timescale dependency
+
+
+    if N_sensor > 1e0 * N_depletion:  # condition
         #print("Valid")
         True
     else:
         F = Pe_H
         #print("Not valid")
 
-    # F = Pe_H # full collection (only for plotting in figure 5! Non realistic version)
+    # F = Pe_H # Enforce complete delivery (not realistic)
 
     # calculate mass transport rate
     if params.char_length == 'H':

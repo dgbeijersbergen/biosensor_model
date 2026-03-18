@@ -98,8 +98,9 @@ def plot_dimensionless(df, t_pulse=None, save_path=None):
     mol_bound = b * S
 
     # Plot
-    plt.plot(t, b_hat , label=r'Bound $\hat{b}$', color="xkcd:grass green",linewidth=2.5)
-    plt.axhline(b_eq / b_m, ls='--', label=r'Equilibrium $\hat{b_{eq}}$', color="xkcd:grass green",linewidth=2)
+    #plt.plot(t, b_hat , label=r'Bound $\hat{b}$', color="xkcd:grass green",linewidth=2.5)
+    plt.plot(t, b / b_m, label=r'Bound $\hat{b}$', color="xkcd:grass green", linewidth=2.5)
+    plt.axhline(b_eq1 / b_m, ls='--', label=r'Equilibrium $\hat{b_{eq}}$', color="xkcd:grass green",linewidth=2)
 
 
     plt.plot(t, c_hat, label=r'Bulk $\hat{c}$', color="xkcd:cerulean",linewidth=2.5)

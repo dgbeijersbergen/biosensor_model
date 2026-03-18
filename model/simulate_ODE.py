@@ -74,6 +74,17 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     mol_out_hat1 = sol.y[3] # type: ignore
     mol_out_hat2 = sol.y[4] # type: ignore
 
+    db_hat_dt = []
+
+    for i, t in enumerate(t_hat):
+        y = sol.y[:, i]
+        dydt = ode_binding_hat(t, y, params)
+        db_hat_dt.append(dydt[0])  # first entry = db_hat_dt
+
+    db_hat_dt = np.array(db_hat_dt)
+
+
+
     # System parameters
     V = W_c * L_c * H_c         # channel volume [m^3]
     S = L_s * W_s               # sensor area [m^2]
@@ -82,13 +93,19 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # check if targets reached
     c_eff = c_in * params.fill_frac
-    b_eq1 = (k_on * c_in * b_m) / (k_on * c_in + k_off)     # 'real' equilbirium
+    print(c_eff)
+    b_eq1 = (k_on * c_in * b_m) / (k_on * c_in + k_off)     # real equilibirium
     b_eq = (k_on * c_eff * b_m) / (k_on * c_eff + k_off)    # simulated equilibrium
     frac_b_eq = b_eq1 / b_eq
+    print(frac_b_eq)
 
     # values with dimensions
     t = t_hat * tau                 # s
     b = b_hat * b_m * frac_b_eq     # mol/m^2 (scaled to real equilibrium)
+    # db_dt = db_hat_dt * b_m   # mol/m^2 (scaled to real equilibrium)
+    db_dt = db_hat_dt * b_m / tau
+
+    # b = b_hat * b_m   # mol/m^2               (unscaled)
     c = c_hat * c_in                # mol/m^3
     c_s = c_s_hat * c_in            # mol/m^3
     mol_out = (mol_out_hat1 + mol_out_hat2) * (c_in * V)   # mol
@@ -118,8 +135,10 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     # k_m = F * (D / (H_c))               # mass transport rate
 
     # Damkohler number
-    Da = (k_on * b_m) / k_m                 # definition like in Squires
-    Da_2 = (k_on * c_in) * tau                # alternative definition
+    Da_1 = (k_on * b_m) / k_m                 # definition like in Squires
+    Da_2 = (k_on * c_in) * tau              # alternative definition
+    Da_3 = (k_on * c_in ) * (L_s / k_m)                  # new definition
+    Da_squires = ( (k_on * b_m) / k_m ) * (L_s / W_c)   # correct definition
     Da_t = (k_on * (b_m - b)) / k_m         # time dependent definition
 
     # results
@@ -219,6 +238,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     return {
         "t": t,
         "b": b,
+        "db_dt": db_dt,
         "S": S,
         "L_s": L_s,
         "b_last": b_last,
@@ -241,9 +261,11 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "Lambda": Lambda,
         "F": F,
         "k_m": k_m,
-        "Da": Da,
+        "Da_1": Da_1,
         "Da_2": Da_2,
+        "Da_3": Da_3,
         "Da_t": Da_t,
+        "Da_squires": Da_squires,
         "mol_injected": mol_injected,
         "mol_out": mol_out,
         "mol_eq": mol_eq,
