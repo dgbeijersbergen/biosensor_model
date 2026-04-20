@@ -47,15 +47,16 @@ def F_combine(Pe_H,lambda_ratio,sharpness=4,Pe_H_cutoff=1e-2,Pe_s_low=1e-2,Pe_s_
 
     # for mixed cases, blend smoothly
     kappa = (np.log10(Pe_s) - np.log10(Pe_s_low)) / (np.log10(Pe_s_high) - np.log10(Pe_s_low))
+
     omega = smoothstep(kappa,sharpness)
 
     return blend_functions(F_small,F_large,omega)
 
 # compute k_m
-def compute_k_m(Q_in,params):
+def compute_k_m(Q_in,params, sharpness=10):
     D = params.D
     W_c = params.W_c
-    L_s = params.L_s
+    L_s = params.L_s                
     H_c = params.H_c
 
     # system charactersitics
@@ -63,7 +64,7 @@ def compute_k_m(Q_in,params):
     Lambda = L_s / H_c      # ratio of sensor length to channel height
 
     # obtain k_m from calculate_Sherwood.py, with F minimum of 1 (pure diffusion)
-    F = F_combine(Pe_H,Lambda)
+    F = F_combine(Pe_H,Lambda, sharpness)
 
     # F cannot exceed Pe_H (limit) - don't enforce for the model, breaks down at low Pe_H
     if F > Pe_H:

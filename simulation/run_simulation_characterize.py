@@ -7,7 +7,7 @@ import pandas as pd
 import itertools
 from tqdm import tqdm
 from biosensor.utils.save_results import save_simulation_results
-from biosensor.plots.plot_results_other import *
+# from biosensor.plots.plot_results_other import *
 from biosensor.model.calculate_Sherwood import *
 
 # print results in consol

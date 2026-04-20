@@ -1,12 +1,16 @@
-from biosensor.parameters.parameters import params
+#from biosensor.parameters.parameters import params
 #from biosensor.parameters.parameters_Madaboosi2015 import params
 #from biosensor.parameters.parameters_QCM import params
+from biosensor.parameters.parameters_figure6 import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_single import *
 from biosensor.utils.save_results import save_simulation_results
 import pandas as pd
 import os
 from datetime import datetime
+# simulate
+import cProfile
+import pstats
 
 
 # simulation
@@ -24,10 +28,22 @@ params.k_on = params.k_on * 1e-3  # on rate in SI units [mol^-1 m^-3 s^-1]
 params.c_0 = params.c_0 * 1e3
 
 # Define maximum stimulation time   (if None: 3x injection time)
-max_time = None
+max_time = 1e6
 
 # simulate
-results = simulate(params, print_results, plot_results,max_time)
+#results = simulate(params, print_results, plot_results,max_time)
+
+## --- profiling start --- ##
+# cProfile.run('simulate(params, print_results, plot_results, max_time)', 'profile_output')
+# 
+# stats = pstats.Stats('profile_output')
+# stats.sort_stats('tottime')  # sort by time spent in function itself
+# stats.print_stats(20)
+
+## --- profiling end --- ##
+
+# still need the results for the rest of the script
+results = simulate(params, print_results, plot_results, max_time, 1)
 
 df = pd.DataFrame(results)
 

@@ -30,15 +30,15 @@ params = ModelParams(
     # physical parameters of model
     W_c = 1e-3,    # channel width [m]
     L_c = 1e-3,   # channel length [m]
-    H_c = 50e-6,    # channel height [m]
+    H_c = 5e-3,    # channel height [m]
 
     # molecular parameters
-    D = 1e-10,      # diffusion coefficient
+    D = 1e-9,      # diffusion coefficient
 
     # sensor parameters
-    k_on = 1e5,        # association constant [mol m^-3 s^-1]
+    k_on = 1e6,        # association constant [mol m^-3 s^-1]
     k_off = 1e-4,   # disassociation constant [1/s]
-    b_m = 1e-8,          # max binding density [mol/m^2]
+    b_m = 1e-9,          # max binding density [mol/m^2]
     L_s = 1e-3,    # sensor length [m]
     W_s = 1e-3,    # sensor width [m]
 
@@ -47,7 +47,7 @@ params = ModelParams(
     c_in = 1e-9,      # input concentration [mol/m^3] (1 M = 1e3 mol/m^3)
     #c_in = 50e-15,      # input concentration [mol/L] (1 mol/m^3 = 1 mM)
     V_in = 50e-6,      # volume input [m^3]   (1uL = 1e-9 m^3)
-    Q_in = 10,     # volume flow rate [uL/min]
+    Q_in = 1,     # volume flow rate [uL/min]
     flow_off = False,  # determines if flow turns off after injection
     char_length = 'H' # characteristic length to calculate k_m [H, H_2]
 

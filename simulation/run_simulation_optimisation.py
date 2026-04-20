@@ -1,5 +1,5 @@
-from biosensor.parameters.parameters_QCM import params
-#from biosensor.parameters.parameters_Madaboosi2015 import params
+#from biosensor.parameters.parameters_QCM import params
+from biosensor.parameters.parameters_Madaboosi2015 import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_optimisation import *
 import numpy as np
@@ -7,7 +7,7 @@ import pandas as pd
 import itertools
 from tqdm import tqdm
 from biosensor.utils.save_results import save_simulation_results
-from biosensor.plots.plot_results_other import *
+# from biosensor.plots.plot_results_other import *
 from biosensor.model.calculate_Sherwood import *
 
 # print results in consol
@@ -23,19 +23,21 @@ params.c_in = params.c_in * 1e3  # input concentration in SI units [mol/m3]
 params.k_on = params.k_on * 1e-3  # on rate in SI units [m^3 mol^-1 s^-1]
 params.c_0 = params.c_0 * 1e3
 
-params.V_in = 1e-3      # sufficient sample volume
+# params.V_in = 1e0      # sufficient sample volume
 
 # grid size simulation
 k = 9
 
 # parameter ranges
 #c_in_vals = np.array([38.35*1e-9]) * 1e3
-# c_in_vals = np.array([1e0, 1e2, 1e4]) * 1e-9 * 1e3
-c_in_vals = np.array([1e2]) * 1e-9 * 1e3
-#c_in_vals = np.array([0.3835, 38.3450]) * 1e-9 * 1e3
+#c_in_vals = np.array([1e0, 1e2, 1e4]) * 1e-9 * 1e3
+#c_in_vals = np.array([1e0]) * 1e-9 * 1e3
+c_in_vals = np.array([0.38]) * 1e-9 * 1e3
+bm_vals = np.array([0.38]) * 1e-9 * 1e3
 
-Q_in_uL_min = np.logspace(-1,3,k)                # flow rate in uL/min
+#Q_in_uL_min = np.logspace(-1,3,k)                # flow rate in uL/min
 #Q_in_uL_min = np.logspace(-1, 23/9, 9)
+Q_in_uL_min = np.logspace(-1, 1, 9)
 #Q_in_uL_min = [params.Q_in]
 
 Q_conversion_factor = (1/60) * 10 ** (-9)
@@ -64,6 +66,12 @@ for c_in, Q_in in tqdm(itertools.product(c_in_vals, Q_in_vals),total=total,desc=
         full_collection = False
 
     result = simulate(params, print_results, plot_results)
+    if Q_in < 0.2e-9/60:  # lowest Q points
+        print(f"c_in={c_in:.2e}, Q={Q_in*1e9*60:.3f} uL/min, "
+              f"V_eq={result['V_eq']*1e9:.2f} uL, "
+              f"time_eq={result['time_eq']:.1f} s, "
+              f"Da={result['Da_squires']:.2f}")
+
     results.append({
         "Q_in": Q_in,
         "V_in": V_in,
@@ -98,7 +106,7 @@ if plot_data == True:
     #plot_optimization(df,params,Q_in_vals)
 
     # plot damkohler [df, [Pe_H, Q_in]]
-    #plot_damkohler_batch(df,"Q_in")
+    plot_damkohler_varying_c(df,"Q_in.png")
 
     #plot_time_eq_interp(df)
     #plot_capt_perc_interp(df)
@@ -110,7 +118,7 @@ if plot_data == True:
     # plot overview
 
     # plot
-    plot_varying_Q(df, params)
-    #plot_varying_Q_varying_c(df, params, save_path=None)    #'time_eq_Vol_QCM.svg'
-    plot_varying_Q_varying_c_Da(df)
-    plot_varying_Q_collection(df, params)
+    #plot_varying_Q(df, params)
+    plot_varying_Q_varying_c(df, params, save_path=None)    #'time_eq_Vol_QCM.svg'
+    #plot_varying_Q_varying_c_Da(df)
+    #plot_varying_Q_collection(df, params)

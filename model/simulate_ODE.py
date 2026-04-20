@@ -1,11 +1,11 @@
-from biosensor.model.biosensor_model import ode_binding_hat
+from biosensor.model.biosensor_model import *
 from scipy.integrate import solve_ivp
 from biosensor.plots.plot_results_single import *
 from biosensor.plots.plot_results_batch import *
 from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
 import cProfile
 
-def simulate(params, print_results = False, plot_results = False, max_time = None):
+def simulate(params, print_results = False, plot_results = False, max_time = None, sharpness=4):
     # unpack params
     W_c, L_c, H_c = params.W_c, params.L_c, params.H_c
     D = params.D
@@ -18,14 +18,16 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     y0_hat = [0, params.c_0 / params.c_in, params.c_0 / params.c_in, 0, 0] # b0, c0, c_s_hat,  N0, N0
 
     # fraction of filling possible
-    output = compute_k_m(params.Q_in, params)
+    output = compute_k_m(params.Q_in, params, sharpness)
     k_m = output[0]
     F = output[1]
+
+    delta = compute_delta(params.Q_in, params, sharpness)
 
     J_in = c_in * Q_in # mol/s
     J_D = W_c * H_c * c_in * k_m
     if k_m > 0 and c_in > 0:
-        params.fill_frac = J_D / J_in
+        params.fill_frac = delta / params.H_c
 
     # time range (in terms of residence times)
     V = W_c * L_c * H_c  # channel volume [m^3]
@@ -45,15 +47,32 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     #if params.Q_in > (1e2*1e-9/60):
     #    V_in = 1e4*1e-9
     #else:
-    #    V_in = 100e-9
-    t_pulse_hat = V_in / V  # nondimensional pulse duration = V_in / V
+    #    V_in = 100e-9   t_pulse_hat = V_in / V  # nondimensional pulse duration = V_in / V
     # t_span_hat = (0, 3 * t_pulse_hat)
-    #n_plot = int(np.ceil((t_span_hat[1] - t_span_hat[0]) / dt_hat)) + 1
+    dt_hat = 1
+    n_plot = int(np.ceil((t_span_hat[1] - t_span_hat[0]) / dt_hat)) + 1
+
+    if n_plot > 1e6:
+        n_plot = n_plot/10
+
     n_plot = 50000
 
     #else:
     #    n_plot = 50000
     t_eval_hat = np.linspace(t_span_hat[0], t_span_hat[1], n_plot)
+
+    # Obtain delta and k_m
+    params.delta = compute_delta(params.Q_in, params, sharpness)
+    params._k_m_cached, params._F_cached = compute_k_m(params.Q_in, params, sharpness)
+
+    # validity test
+    t_R = 1 / (k_on * c_in + k_off)
+    tau2 = L_s / k_m
+
+    #if 2*t_R > tau:
+    #    raise ValueError("t_R > tau, invalid")
+
+
 
     # solve biosensor ODE (best result: LSODA)
     # cProfile.run('solve_ivp(ode_binding_hat, t_span_hat, y0_hat, method="LSODA", t_eval=t_eval_hat, args=(params,))')
@@ -83,8 +102,6 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     db_hat_dt = np.array(db_hat_dt)
 
-
-
     # System parameters
     V = W_c * L_c * H_c         # channel volume [m^3]
     S = L_s * W_s               # sensor area [m^2]
@@ -93,22 +110,24 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # check if targets reached
     c_eff = c_in * params.fill_frac
-    print(c_eff)
     b_eq1 = (k_on * c_in * b_m) / (k_on * c_in + k_off)     # real equilibirium
     b_eq = (k_on * c_eff * b_m) / (k_on * c_eff + k_off)    # simulated equilibrium
     frac_b_eq = b_eq1 / b_eq
-    print(frac_b_eq)
 
     # values with dimensions
     t = t_hat * tau                 # s
-    b = b_hat * b_m * frac_b_eq     # mol/m^2 (scaled to real equilibrium)
+    # b = b_hat * b_m * frac_b_eq     # mol/m^2 (scaled to real equilibrium)
+    b = b_hat * b_m
     # db_dt = db_hat_dt * b_m   # mol/m^2 (scaled to real equilibrium)
     db_dt = db_hat_dt * b_m / tau
 
     # b = b_hat * b_m   # mol/m^2               (unscaled)
     c = c_hat * c_in                # mol/m^3
     c_s = c_s_hat * c_in            # mol/m^3
-    mol_out = (mol_out_hat1 + mol_out_hat2) * (c_in * V)   # mol
+    V_s = delta * W_s * L_s
+    V_b = V - V_s
+
+    mol_out = (mol_out_hat1 * c_in * V_b + mol_out_hat2 * c_in * V_s)   # mol
 
     b_last = b[-1]
 
@@ -118,14 +137,16 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     ## -- analysis -- ##
 
     # conservation check (should be near zero)
-    residual = mol_injected - mol_out - b * S - c * V * (1 - params.fill_frac) - c_s * V * params.fill_frac
+    #residual = mol_injected - mol_out - b * S - c * V * (1 - params.fill_frac) - c_s * V * params.fill_frac
 
+
+    residual = mol_injected - mol_out - (b * S) - (c * V_b) - (c_s * V_s)
 
     # system characteristics
     Pe_H = Q_in / (D * W_c)                 # Peclet number (channel)
     Lambda = L_s / H_c                      # ratio of sensor length to channel height
     Pe_s = 6 * (Lambda ** 2) * Pe_H         # Peclet number (shear)
-    output = compute_k_m(Q_in,params)             # Sherwood number
+    output = compute_k_m(Q_in,params, sharpness)             # Sherwood number
     k_m = output[0]
     F = output[1]
 
@@ -138,14 +159,35 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     Da_1 = (k_on * b_m) / k_m                 # definition like in Squires
     Da_2 = (k_on * c_in) * tau              # alternative definition
     Da_3 = (k_on * c_in ) * (L_s / k_m)                  # new definition
-    Da_squires = ( (k_on * b_m) / k_m ) * (L_s / W_c)   # correct definition
+    Da = ( (k_on * b_m) / k_m ) * (L_s / H_c)   # correct definition
     Da_t = (k_on * (b_m - b)) / k_m         # time dependent definition
+
+    # analytical
+    t_R = 1 / (k_on * c_in + k_off)
+    t_eq_analytical = 3 * t_R * (1 + Da)
+    V_min = 3 * W_s * L_s * k_on * b_m * t_R
+
+    Q_c = 1.79 * Lambda * W_c * D
+
+    Da_c = (k_on * b_m * H_c ) / (1.79 * D)
+
+    print(Q_in)
+    print(Q_c)
+
+    if Q_in > Q_c:
+        print("Outside complete delivery")
+        V_req_analytical = V_min * (1 + 1/Da) * (Da_c/Da)**2
+    else:
+        print("Inside complete delivery")
+        V_req_analytical = V_min * (1 + 1 / Da)
 
     # results
     mol_capt = b * S                          # captured molecules (array) [mol]
-    mol_c = c * V
-    mol_cs = c_s * V
-    mol_bulk = (c + c_s) * V
+
+    mol_c = c * V_b
+    mol_cs = c_s * V_s
+    mol_bulk = mol_c + mol_cs
+    mol_theory = c_in * V
 
     # end values
     mol_bulk_end = c[-1] * V
@@ -188,7 +230,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
 
     # Compute relative mass balance error (abs(x-y) / y)
     mol_bound = b * S  # bound molecules [mol]
-    mol_total = mol_bound / frac_b_eq + mol_bulk + mol_out  # molecules in system [mol]
+    mol_total = mol_bound + mol_c + mol_cs + mol_out  # molecules in system [mol]
 
     mass_error = np.zeros_like(t)
     nonzero_mask = mol_injected > 0     # avoid division by zero
@@ -201,7 +243,8 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
     if time_eq < t_pulse_hat * tau:
         V_eq = time_eq * Q_in
     else:
-        V_eq = V_in
+        True
+        #V_eq = V_in
 
     if print_results == True:
         print("Simulation of system")
@@ -215,7 +258,17 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         print(f"Ratio of sensor length to channel height (lambda) {Lambda:.2f}")
         print(f"Sherwood number: {F:.2f}")
         print(f"Mass transport rate (k_m): {k_m:.3e}")
-        print(f"Damkohler number (Da): {Da_2:.2e}")
+        print(f"Damkohler number (Da): {Da:.2e}")
+        print(f"Delta [um]: {delta*1e6:.2e}")
+
+        print("-----------")
+        print("Analtyical results:")
+        print(f"Binding timescale: {t_R:.2e}")
+        print(f"Residency time: {tau:.2e}")
+        print(f"Equilibration time (analytical): {t_eq_analytical:.2e}")
+        print(f"V min [uL]: {V_min * 1e9:.2e}")
+        print(f"V req [uL]: {V_req_analytical * 1e9:.2e}")
+
 
         print("-----------")
 
@@ -265,7 +318,7 @@ def simulate(params, print_results = False, plot_results = False, max_time = Non
         "Da_2": Da_2,
         "Da_3": Da_3,
         "Da_t": Da_t,
-        "Da_squires": Da_squires,
+        "Da": Da,
         "mol_injected": mol_injected,
         "mol_out": mol_out,
         "mol_eq": mol_eq,
