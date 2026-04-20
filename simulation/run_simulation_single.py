@@ -1,17 +1,14 @@
-#from biosensor.parameters.parameters import params
-#from biosensor.parameters.parameters_Madaboosi2015 import params
-from biosensor.parameters.parameters_QCM import params
-#from biosensor.parameters.parameters_figure6 import params
+from biosensor.parameters.parameters import params
+#from biosensor.parameters.parameters_box2 import params
+#from biosensor.parameters.parameters_box1 import params
+#from biosensor.parameters.parameters_figure5 import params
+
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_single import *
 from biosensor.utils.save_results import save_simulation_results
 import pandas as pd
 import os
 from datetime import datetime
-# simulate
-import cProfile
-import pstats
-
 
 # simulation
 print_results = True
@@ -28,21 +25,8 @@ params.k_on = params.k_on * 1e-3  # on rate in SI units [mol^-1 m^-3 s^-1]
 params.c_0 = params.c_0 * 1e3
 
 # Define maximum stimulation time   (if None: 3x injection time)
-max_time = 1e4
+max_time = None
 
-# simulate
-#results = simulate(params, print_results, plot_results,max_time)
-
-## --- profiling start --- ##
-# cProfile.run('simulate(params, print_results, plot_results, max_time)', 'profile_output')
-# 
-# stats = pstats.Stats('profile_output')
-# stats.sort_stats('tottime')  # sort by time spent in function itself
-# stats.print_stats(20)
-
-## --- profiling end --- ##
-
-# still need the results for the rest of the script
 results = simulate(params, print_results, plot_results, max_time, 1)
 
 df = pd.DataFrame(results)
@@ -74,11 +58,8 @@ if export_data == True:
         save_path=os.path.join(plot_dir, "error.png"))
 
 if plot_results == True:
-
     # plot time series of mol values
     plot_time_series(df,t_pulse)
-
-    # plot_cs_time(df,t_pulse)
 
     # plot time series of dimensionless values
     plot_dimensionless(df, t_pulse)
@@ -89,5 +70,3 @@ if plot_results == True:
     # plot error over time
     plot_mass_balance_error(df,t_pulse)
 
-    # Damkohler number over time (useful?)
-    plot_Damkohler_time(df)

@@ -1,4 +1,4 @@
-from biosensor.parameters.parameters_Madaboosi2015 import params
+from biosensor.parameters.parameters_box2 import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_optimisation import *
 import numpy as np

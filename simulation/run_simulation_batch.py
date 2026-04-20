@@ -1,5 +1,5 @@
-# from biosensor.parameters.parameters import params
-from biosensor.parameters.parameters_QCM import params
+from biosensor.parameters.parameters import params
+#from biosensor.parameters.parameters_box1 import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_batch import *
 import numpy as np

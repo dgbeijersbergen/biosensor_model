@@ -1,6 +1,6 @@
 #from biosensor.parameters.parameters import params
-#from biosensor.parameters.parameters_Madaboosi2015 import params
-from biosensor.parameters.parameters_QCM import params
+#from biosensor.parameters.parameters_box2 import params
+from biosensor.parameters.parameters_box1 import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_single import *
 from biosensor.utils.save_results import save_simulation_results
@@ -26,8 +26,7 @@ params.k_on = params.k_on * 1e-3  # on rate in SI units [mol^-1 m^-3 s^-1]
 params.c_0 = params.c_0 * 1e3
 
 # Define maximum stimulation time   (if None: 3x injection time)
-max_time = 3000
-
+max_time = None
 
 Q_in_uL_min = np.array([2.15, 5.99, 16.67, 46.70, 129.13, 1002.97])                # flow rate in uL/min
 
@@ -89,6 +88,3 @@ for (Q_in,) in tqdm(itertools.product(Q_in_vals),total=len(Q_in_vals),desc="Runn
 
         # plot error over time
         plot_mass_balance_error(df,t_pulse)
-
-        # Damkohler number over time (useful?)
-        plot_Damkohler_time(df)
