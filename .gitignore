@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+model/__pycache__/*.pyc
+parameters/__pycache__/*.pyc
+plots/__pycache__/*.pyc
+utils/__pycache__/*.pyc
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Results and plot outputs
+results/
+plots/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PyCharm project files (optional)
+../.idea/
