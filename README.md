@@ -24,6 +24,13 @@ Instructions to run: (batch simulation)
 - Make sure correct parameters are imported (e.g., from biosensor.parameters.parameters import params)
 - Run the file run_simulation_single.py
 
+Simulation types:
+- characterize: input range of volumes (V_in), flow rates (Q_in) to obtain capture percentage figure (Fig. 4a main text)
+- Q_optimisation: for one biosensor, parameter sweep over flow rates to obtain V_req and t_eq (Fig. 4b main text)
+- optimisation_box2: same as Q_optimisation, but for various parameters (Fig. 7 main text)
+- single: single simulation
+- singles: 
+
 ## Background
 
 

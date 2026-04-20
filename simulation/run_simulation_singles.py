@@ -29,8 +29,6 @@ params.c_0 = params.c_0 * 1e3
 max_time = 3000
 
 
-
-
 Q_in_uL_min = np.array([2.15, 5.99, 16.67, 46.70, 129.13, 1002.97])                # flow rate in uL/min
 
 Q_conversion_factor = (1/60) * 10 ** (-9)

@@ -1,13 +1,11 @@
 from biosensor.parameters.parameters_QCM import params
 #from biosensor.parameters.parameters_Madaboosi2015 import params
 from biosensor.model.simulate_ODE import simulate
-from biosensor.plots.plot_results_characterize import *
-import numpy as np
+from biosensor.plots.plot_results import *
 import pandas as pd
 import itertools
 from tqdm import tqdm
 from biosensor.utils.save_results import save_simulation_results
-# from biosensor.plots.plot_results_other import *
 from biosensor.model.calculate_Sherwood import *
 
 # print results in consol
@@ -56,7 +54,7 @@ for Q_in, V_in, c_in in tqdm(itertools.product(Q_in_vals, V_in_vals, c_in_vals),
     else:
         full_collection = False
 
-    result = simulate(params, print_results, plot_results)
+    result = simulate(params, print_results, plot_results, wait_error_response=False)
     results.append({
         "Q_in": Q_in,
         "V_in": V_in,
@@ -77,19 +75,5 @@ if export_data == True:
     plot_dir = os.path.join(os.path.dirname(csv_file), "plots")
     os.makedirs(plot_dir, exist_ok=True)
 
-
-    # Save summary plots
-    #plot_peclet_batch(df, save_path=os.path.join(plot_dir, "peclet_batch.png"))
-    #plot_time_eq_interp(df, save_path=os.path.join(plot_dir, "time_eq_interp.png"))
-    #plot_capt_perc_interp(df, save_path=os.path.join(plot_dir, "capture_percentage.png"))
-    #plot_site_occupancy_interp(df, params, save_path=os.path.join(plot_dir, "site_occupancy.png"))
-
 if plot_data == True:
-    # plot
     plot_site_occupancy_interp(df, params, grid_size=9, save_path=None) # ,
-    plot_time_eq_interp(df)
-    #plot_damkohler_varying_c(df, 'damkohler_QCM.svg')
-    plot_damkohler_batch(df, "Q_in")
-    plot_flow_volume(df)
-    # plot_capt_perc_interp(df)   # capture percentage - good for full capture systems
-    # #plot_capture_vs_peH_lambda(df)

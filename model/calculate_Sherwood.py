@@ -1,9 +1,7 @@
 ## function to calculate k_m for given input of Pe_s and lambda
 import numpy as np
-from sympy import false
 
-
-# formulas for limits
+# -- formulas for limits --
 # for Pe_H << 1
 def F_retained(Pe_H):
     return Pe_H
@@ -72,30 +70,16 @@ def compute_k_m(Q_in,params, sharpness=10):
 
     b_eq = params.b_m * (params.k_on * params.c_in) / (params.k_on * params.c_in + params.k_off)
 
-    if Pe_H > 0:
-        fraction = F / Pe_H      # equivalent to height
-        # print(fraction)
-    else:
-        fraction = 1
+    ## --- determine model validity --- ##
+    delta = L_s / F
+    epsilon = b_eq * params.W_s / (delta * W_c * params.c_in)
 
-    V = params.W_s * params.H_c * params.L_s
-
-    N_sensor = b_eq * L_s * params.W_s    # molecules required to cover surface
-
-    N_depletion = fraction * V * params.c_in    # molecules available in depletion layer
-
-    # determines if model is valid (epsilon in main text)
-        # to do: add Squires eq. 21 - timescale dependency
-
-
-    if N_sensor > 1e0 * N_depletion:  # condition
+    if epsilon > 0:
         #print("Valid")
         True
     else:
-        F = Pe_H
+        F = Pe_H    # complete delivery regime
         #print("Not valid")
-
-    # F = Pe_H # Enforce complete delivery (not realistic)
 
     # calculate mass transport rate
     if params.char_length == 'H':

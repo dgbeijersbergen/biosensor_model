@@ -1,7 +1,7 @@
 #from biosensor.parameters.parameters import params
 #from biosensor.parameters.parameters_Madaboosi2015 import params
-#from biosensor.parameters.parameters_QCM import params
-from biosensor.parameters.parameters_figure6 import params
+from biosensor.parameters.parameters_QCM import params
+#from biosensor.parameters.parameters_figure6 import params
 from biosensor.model.simulate_ODE import simulate
 from biosensor.plots.plot_results_single import *
 from biosensor.utils.save_results import save_simulation_results
@@ -28,7 +28,7 @@ params.k_on = params.k_on * 1e-3  # on rate in SI units [mol^-1 m^-3 s^-1]
 params.c_0 = params.c_0 * 1e3
 
 # Define maximum stimulation time   (if None: 3x injection time)
-max_time = 1e6
+max_time = 1e4
 
 # simulate
 #results = simulate(params, print_results, plot_results,max_time)
