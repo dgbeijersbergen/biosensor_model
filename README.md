@@ -54,13 +54,26 @@ params = ModelParams(
 )
 ```
 
-2. **Run a single simulation:**
+2. **Adjust simulations to import parameters**
+```python
+from biosensor.parameters.parameters import params
+```
+
+3. **Run a simulation:**
 
 ```bash
 python run_simulation_single.py
 ```
 
-This prints system characteristics (Pe_H, Pe_s, λ, F, Da), performance metrics (captured/lost molecule fractions, equilibration time, required volume), and optionally exports results and plots.
+```bash
+python run_simulation_characterize.py
+```
+
+```bash
+python run_simulation_optimisation.py
+```
+
+This prints system characteristics, performance metrics (captured/lost molecule fractions, equilibration time, required volume), and optionally exports results and plots.
 
 ---
 
@@ -143,7 +156,7 @@ If you use this model, please cite:
 
 ```
 Beijersbergen, D. & Charmet, J. (2026). Sample volume as a key design parameter 
-in affinity-based biosensors. [Journal TBD]
+in affinity-based biosensors. [Biosensors and Bioelectronics: X]
 ```
 
 ---
