@@ -1,9 +1,9 @@
 # Biosensor Two-Compartment Model
 
-A lightweight Python model for simulating affinity-based biosensor kinetics, integrating simplified mass transport, Langmuir binding, and mass conservation under finite-volume constraints.
+A lightweight Python model for simulating affinity-based biosensor kinetics, integrating simplified mass transport and Langmuir binding. This model contains mass conservation and takes into account the sample volume.
 
 Companion code to:
-> **D. Beijersbergen & J. Charmet (2026)** — *Sample volume as a key design parameter in affinity-based biosensors*
+> **D. Beijersbergen & J. Charmet (2026)** — *Sample volume as a key design parameter in affinity-based biosensors* (in revision, preprint: https://arxiv.org/abs/2512.21997)
 
 ---
 
@@ -12,11 +12,11 @@ Companion code to:
 Accurately modeling biosensor performance normally requires computationally intensive finite-element simulations (e.g. COMSOL). This model offers a tractable alternative: a two-compartment ODE system that splits the biosensor volume into an interacting interface layer and a non-interacting bulk, governed by 13 physically meaningful parameters.
 
 **Key capabilities:**
-- Simulates binding kinetics (RMSE < 5% vs. COMSOL)
-- Predicts equilibration time and required sample volume (mean relative error ~7–11% vs. COMSOL)
-- Runs >100× faster than finite-element simulations
-- Supports flow-on and stopped-flow operation modes
-- Computes Damköhler number, Péclet numbers, Sherwood number, and mass balance error
+- Accurately simulates affinity-based biosensor binding kinetics (RMSE < 5% vs. COMSOL)
+- Predicts equilibration time and required sample volume (mean relative error ~7% vs. COMSOL)
+- Runs >100× faster than finite-element simulations (runtime per simulation < 1.0 seconds)
+- Provides rapid insights into biosensor optimisation through parametric sweeps
+- Computes intermediate parameters (Damköhler number, Péclet numbers, Critical flow rate)
 
 ---
 
@@ -82,19 +82,25 @@ This prints system characteristics, performance metrics (captured/lost molecule 
 ```
 biosensor/
 ├── model/
-│   ├── biosensor_model.py      # ODE system (dimensionless form)
-│   ├── calculate_Sherwood.py   # Sherwood interpolation: F(Pe_H, λ)
-│   └── simulate_ODE.py         # ODE driver, post-processing, outputs
+│   ├── biosensor_model.py       # ODE system (dimensionless)
+│   ├── calculate_Sherwood.py    # Sherwood interpolation & k_m
+│   └── simulate_ODE.py          # Solver setup, post-processing, mass balance
+│
 ├── parameters/
-│   └── parameters_QCM.py       # ModelParams dataclass + example parameters
+│   ├── parameters.py            # Default parameters
+│   ├── parameters_box1.py       
+│   └── parameters_box2.py
+│   └── parameters_figure5.py
+│
 ├── plots/
-│   ├── plot_results_single.py  # Time series, dimensionless, performance plots
-│   └── plot_results_batch.py   # Batch sweep plots
-└── utils/
-    └── save_results.py         # CSV export
-
-run_simulation_single.py        # Entry point for single simulations
-```
+│   ├── plot_results_single.py
+│   ├── plot_results.py
+│
+└── simulation/
+    ├── run_simulation_single.py       # Single-condition simulation
+    ├── run_simulation_batch.py        # Batch over parameter sets
+    ├── run_simulation_characterize.py # Sweep V_in × Q_in → capture fraction
+    └── run_simulation_optimisation.py # Sweep Q_in → V_req, t_eq
 
 ---
 
@@ -132,7 +138,7 @@ All parameters are defined in a `ModelParams` dataclass. Units are SI throughout
 
 ## Model Assumptions and Limitations
 
-- **Sensor geometry:** The sensor is assumed to span the full channel width (W_s = W_c). For narrower sensors, a volume penalty scales as W_s / W_c.
+- **Sensor geometry:** The sensor is assumed to span the full channel width (W_s = W_c). For narrower sensors, a volume penalty scales as W_s / W_c (depending on lateral diffusion).
 - **No inter-compartment diffusion:** Transport between the bulk and interface compartments is not modelled — valid for continuous flow, but may underestimate diffusive transport in stopped-flow conditions.
 - **Quasi-steady transport:** The model assumes a transport steady state forms before significant binding occurs. Violations (channel residence time τ > binding timescale t_R) can cause over- or underestimation.
 - **Depletion layer switch:** The condition for a valid depletion layer (ε = N_sensor / N_layer) is applied as a binary switch. In practice, this transition is gradual.
@@ -143,8 +149,8 @@ All parameters are defined in a `ModelParams` dataclass. Units are SI throughout
 
 The model is designed to be straightforward to extend:
 
-- **New parameter sets:** Copy `parameters_QCM.py`, fill in your system's values, and point `run_simulation_single.py` to the new file.
-- **Custom analytes:** Set `D` (diffusion coefficient), `k_on`, `k_off`, and `b_m` for your target molecule. Several commented examples (MCH, ssDNA) are included in the parameters file.
+- **New parameter sets:** Copy `parameters.py`, fill in your system's values, and point `run_simulation_single.py` (or other simulation files) to the new parameter file.
+- **Custom analytes:** Set `D` (diffusion coefficient), `k_on`, `k_off`, and `b_m` for your target molecule. An approximation of the diffusion coefficient is possible through Einstein approximation.
 - **Batch sweeps:** Use `simulate_ODE.simulate()` directly in a loop over parameter ranges and collect results into a DataFrame. The `plot_results_batch.py` module provides batch plotting utilities.
 - **Stopped vs. continuous flow:** Toggle `flow_off = True/False`. In stopped-flow mode, the interface ODE reduces to binding/unbinding only.
 
