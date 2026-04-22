@@ -1,4 +1,4 @@
-[Click here to run simplified optimization online](Biosensor_Optimization.ipynb)
+[Click here to run simplified optimization online](biosensor_optimization.ipynb)
 
 # Biosensor Two-Compartment Model
 
