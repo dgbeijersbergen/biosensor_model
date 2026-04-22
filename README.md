@@ -1,3 +1,5 @@
+[Click here to run simplified optimization online](Biosensor_Optimization.ipynb)
+
 # Biosensor Two-Compartment Model
 
 A lightweight Python model for simulating affinity-based biosensor kinetics, integrating simplified mass transport and Langmuir binding. This model contains mass conservation and takes into account the sample volume.
