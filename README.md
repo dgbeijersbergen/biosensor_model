@@ -28,9 +28,9 @@ Accurately modeling biosensor performance normally requires computationally inte
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/<your-org>/biosensor-model.git
+git clone https://github.com/dgbeijersbergen/biosensor_model.git biosensor
 cd biosensor-model
-pip install numpy scipy pandas sympy
+pip install numpy scipy pandas
 ```
 
 Python 3.10+ recommended.
