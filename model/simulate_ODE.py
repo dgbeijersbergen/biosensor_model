@@ -1,7 +1,7 @@
 from biosensor.model.biosensor_model import *
 from scipy.integrate import solve_ivp
 from biosensor.plots.plot_results_single import *
-from biosensor.plots.plot_results_batch import *
+from biosensor.plots.plot_results import *
 from biosensor.model.calculate_Sherwood import F_combine, compute_k_m
 import cProfile
 
