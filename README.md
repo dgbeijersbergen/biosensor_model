@@ -7,7 +7,7 @@ A lightweight Python model for simulating affinity-based biosensor kinetics, int
 Companion code to:
 > **D. Beijersbergen & J. Charmet (2026)** — *Sample volume as a key design parameter in affinity-based biosensors* (in revision, preprint: https://arxiv.org/abs/2512.21997)
 
----
+
 
 ## Overview
 
@@ -20,22 +20,52 @@ Accurately modeling biosensor performance normally requires computationally inte
 - Provides rapid insights into biosensor optimisation through parametric sweeps
 - Computes intermediate parameters (Damköhler number, Péclet numbers, Critical flow rate)
 
----
-
 
 ## Installation
+Python 3.10+ recommended. 
+For easy of use, a python IDE is recommended.
+ 
+### IDE (PyCharm, VS Code, etc.)
+ 
+1. Clone or download the repository from GitHub
+2. Open your IDE and select **Open Project**
+3. Navigate to the folder *containing* `biosensor/` and open that — not the `biosensor/` folder itself. Python needs to be run from this level to find the package.
+4. Install `scipy`, `pandas`, `matplotlib` via your IDE's package manager
+5. Open `biosensor/simulation/run_simulation_single.py` and press Run
 
+### Windows command line
+ 
 Clone the repository and install dependencies:
-
+```powershell
+git clone https://github.com/dgbeijersbergen/biosensor_model.git biosensor
+py -m pip install scipy pandas matplotlib
+```
+ 
+Run a simulation:
+```powershell
+py -m biosensor.simulation.run_simulation_single
+```
+ 
+### Mac / Linux command line
+ 
+Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/dgbeijersbergen/biosensor_model.git biosensor
-cd biosensor-model
-pip install numpy scipy pandas
+pip3 install scipy pandas matplotlib
+```
+ 
+Run a simulation:
+```bash
+python3 -m biosensor.simulation.run_simulation_single
 ```
 
-Python 3.10+ recommended.
+## Troubleshooting
+ 
+| Error | Fix |
+|---|---|
+| `ModuleNotFoundError: No module named 'biosensor'` | Make sure your project/terminal is in the parent folder containing `biosensor/`, not inside it |
 
----
+
 
 ## Quick Start
 
@@ -77,7 +107,7 @@ python run_simulation_optimisation.py
 
 This prints system characteristics, performance metrics (captured/lost molecule fractions, equilibration time, required volume), and optionally exports results and plots.
 
----
+
 
 ## Repository Structure
 
@@ -104,7 +134,7 @@ biosensor/
     ├── run_simulation_characterize.py # Sweep V_in × Q_in → capture fraction
     └── run_simulation_optimisation.py # Sweep Q_in → V_req, t_eq
 
----
+
 
 ## Parameters
 
@@ -124,7 +154,7 @@ All parameters are defined in a `ModelParams` dataclass. Units are SI throughout
 | `flow_off` | — | bool | Stopped flow after injection |
 | `char_length` | — | `'H'` | Characteristic length for k_m (`'H'` = channel height) |
 
----
+
 
 ## Outputs
 
@@ -136,7 +166,7 @@ All parameters are defined in a `ModelParams` dataclass. Units are SI throughout
 - `time_eq`, `V_eq` — equilibration time and required volume
 - `mass_error` — relative mass balance error over time (useful for validation)
 
----
+
 
 ## Model Assumptions and Limitations
 
@@ -145,7 +175,6 @@ All parameters are defined in a `ModelParams` dataclass. Units are SI throughout
 - **Quasi-steady transport:** The model assumes a transport steady state forms before significant binding occurs. Violations (channel residence time τ > binding timescale t_R) can cause over- or underestimation.
 - **Depletion layer switch:** The condition for a valid depletion layer (ε = N_sensor / N_layer) is applied as a binary switch. In practice, this transition is gradual.
 
----
 
 ## Adapting the Model
 
@@ -156,7 +185,7 @@ The model is designed to be straightforward to extend:
 - **Batch sweeps:** Use `simulate_ODE.simulate()` directly in a loop over parameter ranges and collect results into a DataFrame. The `plot_results_batch.py` module provides batch plotting utilities.
 - **Stopped vs. continuous flow:** Toggle `flow_off = True/False`. In stopped-flow mode, the interface ODE reduces to binding/unbinding only.
 
----
+
 
 ## Citation
 
