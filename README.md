@@ -133,7 +133,7 @@ biosensor/
     ├── run_simulation_batch.py        # Batch over parameter sets
     ├── run_simulation_characterize.py # Sweep V_in × Q_in → capture fraction
     └── run_simulation_optimisation.py # Sweep Q_in → V_req, t_eq
-
+```
 
 
 ## Parameters
@@ -170,8 +170,8 @@ All parameters are defined in a `ModelParams` dataclass. Units are SI throughout
 
 ## Model Assumptions and Limitations
 
-- **Sensor geometry:** The sensor is assumed to span the full channel width (W_s = W_c). For narrower sensors, a volume penalty scales as W_s / W_c (depending on lateral diffusion).
-- **No inter-compartment diffusion:** Transport between the bulk and interface compartments is not modelled — valid for continuous flow, but may underestimate diffusive transport in stopped-flow conditions.
+- **Sensor geometry:** For the analytical expressions, the sensor is assumed to span the full channel width (W_s = W_c).
+- **No inter-compartment diffusion:** Transport between the bulk and interface compartments is not modelled. Valid for continuous flow, but may underestimate diffusive transport in stopped-flow conditions.
 - **Quasi-steady transport:** The model assumes a transport steady state forms before significant binding occurs. Violations (channel residence time τ > binding timescale t_R) can cause over- or underestimation.
 - **Depletion layer switch:** The condition for a valid depletion layer (ε = N_sensor / N_layer) is applied as a binary switch. In practice, this transition is gradual.
 
